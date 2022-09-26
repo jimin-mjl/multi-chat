@@ -1,7 +1,7 @@
 .vs/
 Debug/
 ExternalLibs/
-chat.sln
+ChatServer.sln
 
 **/*.vcxproj
 **/*.vcxproj.filters

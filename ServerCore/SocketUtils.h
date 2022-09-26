@@ -11,6 +11,7 @@ public:
 	bool CleanupWS();
 	SOCKET CreateSocket(int32 af, int32 type, int32 protocol);
 	bool BindSocket(SOCKET* sock, int32 af, int16 port, int64 ip = INADDR_ANY);
+	bool ShutdownSocket(SOCKET* sock, int option);
 };
 
 /*-----------------
