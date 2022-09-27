@@ -8,10 +8,10 @@ class SocketUtils
 {
 public:
 	bool InitializeWS();
-	bool CleanupWS();
+	void CleanupWS();
 	SOCKET CreateSocket(int32 af, int32 type, int32 protocol);
-	bool BindSocket(SOCKET* sock, int32 af, int16 port, int64 ip = INADDR_ANY);
-	bool ShutdownSocket(SOCKET* sock, int option);
+	bool BindSocket(SOCKET* sock, int32 af, uint16 port, uint32 ip = INADDR_ANY);
+	void ShutdownSocket(SOCKET* sock, int option);
 };
 
 /*-----------------
