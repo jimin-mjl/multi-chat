@@ -4,3 +4,4 @@
 #include <WS2tcpip.h>
 
 #include "CorePch.h"
+#include "Logger.h"
