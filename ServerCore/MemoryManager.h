@@ -7,7 +7,7 @@ template<typename T, typename... Args>
 T* xnew(Args&&... args)
 {
 	T* obj = static_cast<T*>(CountAllocator::Alloc(sizeof(T)));
-	new(obj)T(forward<Args>(args)...);  // 메모리 할당 후 초기화(placement new) 
+	new(obj)T(forward<Args>(args)...);  // Initialize obj after allocation (placement new) 
 	return obj;
 }
 
