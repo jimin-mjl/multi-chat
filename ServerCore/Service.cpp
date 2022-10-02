@@ -14,8 +14,8 @@ Service::Service(uint32 ip, uint16 port, uint32 maxConnection)
 	: mMaxSessionCount(maxConnection)
 {
 	mAddr = NetAddress(ip, port);
-	mIocpCore = xmake_shared<IocpCore>();
-	mListener = xmake_shared<Listener>(mMaxSessionCount);
+	mIocpCore = make_shared<IocpCore>();
+	mListener = make_shared<Listener>(mMaxSessionCount);
 }
 
 Service::~Service()
@@ -48,7 +48,7 @@ shared_ptr<Session> Service::CreateSession()
 
 shared_ptr<Session> Service::createEmptySession()
 {
-	shared_ptr<Session> session = xmake_shared<Session>();
+	shared_ptr<Session> session = make_shared<Session>();
 	return session;
 }
 
@@ -62,7 +62,7 @@ void Service::RegisterSession(shared_ptr<Session> session)
 void Service::ReleaseSession(shared_ptr<Session> session)
 {
 	lock_guard<mutex> guard(mMutex);
-	int removed = mSessions.erase(session);
+	size_t removed = mSessions.erase(session);
 	ASSERT_CRASH(removed != 0);
 	--mCurrentSessionCount;
 }

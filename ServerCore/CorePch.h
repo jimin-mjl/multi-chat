@@ -17,8 +17,8 @@
 #pragma comment(lib,"ws2_32.lib")
 
 // Local files
-#include "MemoryManager.h"
 #include "Types.h"
+#include "Memory.h"
 
 #define WIN32_LEAN_AND_MEAN             // 거의 사용되지 않는 내용을 Windows 헤더에서 제외합니다.
 

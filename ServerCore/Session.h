@@ -28,7 +28,7 @@ public:
 	void				SetNetAddress(uint32 ip, uint16 port);
 	void				SetService(shared_ptr<Service> service) { mService = service; }
 	uint32				GetNetIp();
-	uint32				GetNetIp();
+	uint16				GetNetPort();
 	SOCKET				GetSocket() { return mSock; }
 	shared_ptr<Service> GetService();
 	bool				IsConnected() { return mIsConnected; }

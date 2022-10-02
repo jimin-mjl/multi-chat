@@ -2,7 +2,6 @@
 #include "IocpCore.h"
 #include "IocpEvent.h"
 #include "IocpObject.h"
-#include "Logger.h"
 
 /*--------------
 	IocpCore

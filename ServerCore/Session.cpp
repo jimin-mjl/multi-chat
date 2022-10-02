@@ -49,7 +49,7 @@ uint32 Session::GetNetIp()
 	return mAddr.ip;
 }
 
-uint32 Session::GetNetIp()
+uint16 Session::GetNetPort()
 {
 	return mAddr.port;
 }
@@ -63,11 +63,6 @@ shared_ptr<Service> Session::GetService()
 HANDLE Session::GetHandle()
 {
 	return reinterpret_cast<HANDLE>(mSock);
-}
-
-bool Session::IsHandleValid()
-{
-	return mSock != INVALID_SOCKET;
 }
 
 void Session::Dispatch(IocpEvent* event, int32 recvBytes)
