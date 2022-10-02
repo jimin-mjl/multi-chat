@@ -17,5 +17,3 @@ public:
 	static void		CloseSocket(SOCKET* sock);
 	static bool		SetSocketOption(SOCKET* sock, int32 level, int32 optname, const void* val, int32 len);
 };
-
-
