@@ -8,11 +8,6 @@
 	  Session
 ------------------*/
 
-Session::Session(SOCKET sock)
-	: mSock(sock)
-{
-}
-
 void Session::SetSocket(SOCKET sock)
 {
 	mSock = sock;
@@ -104,7 +99,7 @@ void Session::RegisterRecv()
 		int error = WSAGetLastError();
 		if (error != WSA_IO_PENDING)
 		{
-			Logger::log_error("Socket recv data failed: ", error);
+			Logger::log_error("Socket recv data failed: {}", error);
 			mRecvEvent.SetOwner(nullptr);
 		}
 	}

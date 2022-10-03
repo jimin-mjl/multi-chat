@@ -35,7 +35,7 @@ bool IocpCore::Dispatch(uint32 timeout)
 	if (result == false)
 	{
 		int32 error = ::WSAGetLastError();
-		Logger::log_error("Getting finished IOCP job failed: ", error);
+		Logger::log_error("Getting finished IOCP job failed: {}", error);
 		return false;
 	}
 

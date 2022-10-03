@@ -18,7 +18,6 @@ class Session : public IocpObject
 {
 public:
 	Session() = default;
-	Session(SOCKET sock);
 	~Session();
 
 public:

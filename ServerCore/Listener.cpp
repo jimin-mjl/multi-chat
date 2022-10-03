@@ -28,7 +28,7 @@ void Listener::SetMaxConnection(int limit)
 	mMaxConn = limit;
 }
 
-void Listener::SetService(shared_ptr<Service> service)
+void Listener::SetService(shared_ptr<ServerService> service)
 {
 	mService = service;
 }
@@ -38,13 +38,13 @@ int Listener::GetMaxConnection()
 	return mMaxConn;
 }
 
-shared_ptr<Service> Listener::GetService()
+shared_ptr<ServerService> Listener::GetService()
 {
 	ASSERT_CRASH(mService.expired() == false);
 	return mService.lock();
 }
 
-bool Listener::StartAccept(shared_ptr<Service> service)
+bool Listener::StartAccept(shared_ptr<ServerService> service)
 {
 	SetService(service); 
 
@@ -127,12 +127,12 @@ bool Listener::listenSocket()
 
 void Listener::registerAccept(AcceptEvent* event)
 {
-	shared_ptr<Service> service = GetService();
+	shared_ptr<ServerService> service = GetService();
 	shared_ptr<Session> session = service->CreateSession();
 	if (session == nullptr)
 	{
 		int32 error = ::WSAGetLastError();
-		Logger::log_error("Creating session while accepting client socket failed: ", error);
+		Logger::log_error("Creating session while accepting client socket failed: {}", error);
 		registerAccept(event);
 	}
 
@@ -147,7 +147,7 @@ void Listener::registerAccept(AcceptEvent* event)
 		int32 error = ::WSAGetLastError();
 		if (error != WSA_IO_PENDING)  // WSA_IO_PENDING means the socket is successfully working on the job
 		{
-			Logger::log_error("Accepting client socket failed: ", error);
+			Logger::log_error("Accepting client socket failed: {}", error);
 			registerAccept(event);
 		}
 	}
@@ -159,7 +159,7 @@ void Listener::processAccept(AcceptEvent* event)
 	if (setUpdateAcceptContext(session->GetSocket()) == false)
 	{
 		int32 error = ::WSAGetLastError();
-		Logger::log_error("Updating accept socket option failed: ", error);
+		Logger::log_error("Updating accept socket option failed: {}", error);
 		registerAccept(event);
 		return;
 	}
@@ -170,7 +170,7 @@ void Listener::processAccept(AcceptEvent* event)
 	if (::getpeername(session->GetSocket(), reinterpret_cast<SOCKADDR*>(&addr), &addrSize) == SOCKET_ERROR)
 	{
 		int32 error = ::WSAGetLastError();
-		Logger::log_error("Getting accept socket address failed: ", error);
+		Logger::log_error("Getting accept socket address failed: {}", error);
 		registerAccept(event);
 		return;
 	}

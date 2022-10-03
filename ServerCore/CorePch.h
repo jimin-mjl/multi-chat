@@ -2,12 +2,15 @@
 
 // Standard libraries
 #include <atomic>
+#include <functional>  // enables to store callable object 
 #include <iostream>
 #include <list>
 #include <map>
 #include <memory>
 #include <mutex>
 #include <set>
+#include <string>
+#include <thread>
 #include <vector>
 
 // Winsock libraries
@@ -15,6 +18,7 @@
 #include <WS2tcpip.h>
 #include <mswsock.h>  // for AcceptEx()
 #pragma comment(lib,"ws2_32.lib")
+#pragma comment(lib,"mswsock.lib")
 
 // Local files
 #include "Types.h"

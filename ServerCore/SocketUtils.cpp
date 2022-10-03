@@ -30,13 +30,14 @@ SOCKET SocketUtils::CreateSocket(int32 af, int32 type, int32 protocol)
 	// creates non-blocking socket
 	u_long mode = 1;
 	SOCKET sock = ::WSASocket(af, type, protocol, 0, NULL, WSA_FLAG_OVERLAPPED);
-	::ioctlsocket(sock, FIONBIO, &mode);
 	if (sock == INVALID_SOCKET)
 	{
-		Logger::log_error("Creating socket failed");
+		int error = WSAGetLastError();
+		Logger::log_error("Creating socket failed: {}", error);
 		return INVALID_SOCKET;
 	}
-		
+
+	::ioctlsocket(sock, FIONBIO, &mode);
 	return sock;
 }
 
@@ -84,7 +85,7 @@ bool SocketUtils::SetSocketOption(SOCKET* sock, int32 level, int32 optname,  con
 	int32 result = ::setsockopt(*sock, level, optname, static_cast<const char*>(val), len);
 	if (result == SOCKET_ERROR)
 	{
-		Logger::log_error("Setting socket option failed: {}", result);
+		Logger::log_error("Setting socket option failed: {}", optname);
 		return false;
 	}
 

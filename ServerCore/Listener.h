@@ -4,7 +4,7 @@
 class NetAddress;
 class IocpEvent;
 class AcceptEvent;
-class Service;
+class ServerService;
 
 /*--------------------------------------
 				Listener
@@ -22,10 +22,10 @@ public:
 
 public:
 	void				SetMaxConnection(int limit);
-	void				SetService(shared_ptr<Service> service);
+	void				SetService(shared_ptr<ServerService> service);
 	int					GetMaxConnection();
-	shared_ptr<Service> GetService();
-	bool				StartAccept(shared_ptr<Service> service);
+	shared_ptr<ServerService> GetService();
+	bool				StartAccept(shared_ptr<ServerService> service);
 
 public:
 	/* IocpObject Interface methods */
@@ -50,6 +50,6 @@ private:
 	int		mMaxConn = 0;
 
 private:
-	weak_ptr<Service>		mService;
+	weak_ptr<ServerService>		mService;
 	vector<AcceptEvent*>	mAcceptEvents;
 };

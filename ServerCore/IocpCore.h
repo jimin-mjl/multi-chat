@@ -15,7 +15,7 @@ public:
 
 public:
 	bool	Register(shared_ptr<class IocpObject> obj);
-	bool	Dispatch(uint32 timeout);
+	bool	Dispatch(uint32 timeout = INFINITE);
 
 private:
 	HANDLE	mCpObject = INVALID_HANDLE_VALUE;

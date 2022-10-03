@@ -10,18 +10,20 @@
 	  Service
 ------------------*/
 
-Service::Service(uint32 ip, uint16 port, uint32 maxConnection)
+Service::Service(uint32 ip, uint16 port, uint32 maxConnection, SessionFactory sf, ServiceType type)
 	: mMaxSessionCount(maxConnection)
+	, mSessionFactory(sf)
+	, mType(type)
 {
+	SocketUtils::InitializeWS();
 	mAddr = NetAddress(ip, port);
-	mIocpCore = make_shared<IocpCore>();
-	mListener = make_shared<Listener>(mMaxSessionCount);
+	mIocpCore = std::make_shared<IocpCore>();
 }
 
 Service::~Service()
 {
 	mIocpCore = nullptr;
-	mListener = nullptr;
+	SocketUtils::CleanupWS();
 }
 
 shared_ptr<Session> Service::CreateSession()
@@ -48,7 +50,7 @@ shared_ptr<Session> Service::CreateSession()
 
 shared_ptr<Session> Service::createEmptySession()
 {
-	shared_ptr<Session> session = make_shared<Session>();
+	shared_ptr<Session> session = mSessionFactory();
 	return session;
 }
 
@@ -65,4 +67,50 @@ void Service::ReleaseSession(shared_ptr<Session> session)
 	size_t removed = mSessions.erase(session);
 	ASSERT_CRASH(removed != 0);
 	--mCurrentSessionCount;
+}
+
+/*----------------------
+	  ServerService
+----------------------*/
+
+ServerService::ServerService(uint32 ip, uint16 port, uint32 maxConnection, SessionFactory sf)
+	: Service(ip, port, maxConnection, sf, ServiceType::SERVER)
+{
+	mListener = std::make_shared<Listener>(maxConnection);
+}
+
+ServerService::~ServerService()
+{
+	mListener = nullptr;
+}
+
+bool ServerService::Start()
+{
+	if (CanStart() == false)
+	{
+		Logger::log_error("Service start failed: No session factory provided");
+		return false;
+	}
+
+	if (mListener == nullptr)
+	{
+		Logger::log_error("Service start failed: No listener object");
+		return false;
+	}
+		
+	bool result = mListener->StartAccept(static_pointer_cast<ServerService>(shared_from_this()));
+	if (result == false)
+		return false;
+
+	return true;
+}
+
+/*----------------------
+	  ClientService
+----------------------*/
+
+ClientService::ClientService(uint32 ip, uint16 port, uint32 maxConnection, SessionFactory sf)
+	: Service(ip, port, maxConnection, sf, ServiceType::CLIENT)
+{
+
 }
