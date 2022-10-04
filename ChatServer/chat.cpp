@@ -14,8 +14,8 @@ class ChatSession : public Session
 int main()
 {
 	// Create Service
-	int32 ip = htonl(INADDR_ANY);
-	int16 port = htons(PORT);
+	int32 ip = INADDR_ANY;
+	int16 port = PORT;
 	shared_ptr<ServerService> service = std::make_shared<ServerService>(ip, port, MAX_CONNECTION, std::make_shared<ChatSession>);
 	
 	ASSERT_CRASH(service->Start());

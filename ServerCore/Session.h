@@ -13,6 +13,7 @@ class Service;
 -------------------------------------*/
 
 constexpr int OUTPUT_BUF_SIZE = 1024;
+constexpr int INPUT_BUF_SIZE = 1024;
 
 class Session : public IocpObject
 {
@@ -33,23 +34,28 @@ public:
 	bool				IsConnected() { return mIsConnected; }
 	
 public:
-	/* Event handler methods */
-	void RegisterConnect();
-	// void RegisterSend();
-	void RegisterRecv();
-
-	void ProcessConnect();
-	// void ProcessSend();
-	void ProcessRecv(int32 recvBytes);
-
+	bool Connect();
+	bool Send(const char* msg);
 	void Disconnect();
+
+public:
+	/* Event handler methods */
+	void ProcessConnect();
+	void ProcessRecv(int32 recvBytes);
+	void ProcessSend(int32 sendBytes);
+
+private:
+	/* Event registration methods */
+	bool registerConnect();
+	void registerRecv();
+	bool registerSend();
 
 public:
 	/* Methods for user implementation */
 	virtual void	OnConnect() {}
 	virtual void	OnDisconnect() {}
 	virtual void	OnRecv(char* buffer, int32 recvBytes) {}
-	/*virtual void OnSend(int32 len) {}*/
+	virtual void	OnSend(int32 sendBytes) {}
 
 public:
 	/* IocpObject Interface methods */
@@ -59,6 +65,7 @@ public:
 
 public:
 	char			mRecvBuf[OUTPUT_BUF_SIZE]; 
+	char			mSendBuf[INPUT_BUF_SIZE];
 
 private:
 	atomic<uint64>	mSessionId = 0;
@@ -71,7 +78,7 @@ private:
 
 private:
 	/* reusable event objects */
-	// ConnectEvent	mConnectEvent;
+	ConnectEvent		mConnectEvent = {};
 	RecvEvent			mRecvEvent = {};
-	// SendEvent mSendEvent;
+	SendEvent			mSendEvent = {};
 };

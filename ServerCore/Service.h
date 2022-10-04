@@ -28,6 +28,9 @@ public:
 public:
 	shared_ptr<IocpCore>	GetIocpCore() { return mIocpCore; }
 	NetAddress&				GetNetAddress() { return mAddr; }
+	ServiceType				GetType() { return mType; }
+	uint32					GetMaxSessionCount() { return mMaxSessionCount; }
+	uint32					GetCurrSessionCount() { return mCurrentSessionCount; }
 	bool					CanStart() { return mSessionFactory != nullptr; }
 	virtual bool			Start() abstract;
 	shared_ptr<Session>		CreateSession();
@@ -76,5 +79,8 @@ class ClientService : public Service
 {
 public:
 	ClientService(uint32 ip, uint16 port, uint32 maxConnection, SessionFactory sf);
-	// virtual bool Start() override;
+	virtual ~ClientService() {}
+
+public:
+	virtual bool Start() override;
 };

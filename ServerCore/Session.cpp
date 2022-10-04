@@ -8,15 +8,15 @@
 	  Session
 ------------------*/
 
-void Session::SetSocket(SOCKET sock)
-{
-	mSock = sock;
-}
-
 Session::~Session()
 {
 	mService.reset();
 	SocketUtils::CloseSocket(&mSock);
+}
+
+void Session::SetSocket(SOCKET sock)
+{
+	mSock = sock;
 }
 
 bool Session::IsHandleValid()
@@ -78,14 +78,113 @@ void Session::Dispatch(IocpEvent* event, int32 recvBytes)
 	}
 }
 
-void Session::RegisterRecv()
+bool Session::Connect()
+{
+	if (IsConnected())
+		return false;
+
+	if (GetService()->GetType() != ServiceType::CLIENT)
+		return false;
+
+	// Set ReuseAddress option
+	bool option = true;
+	if (SocketUtils::SetSocketOption(&mSock, SOL_SOCKET, SO_REUSEADDR, static_cast<void*>(&option), sizeof(option)) == false)
+		return false;
+
+	// Bind socket
+	SetNetAddress(INADDR_ANY, 0);  // Bind any port
+	if (SocketUtils::BindSocket(&mSock, AF_INET, mAddr) == false)
+		return false;
+
+	return registerConnect();
+}
+
+bool Session::Send(const char* msg)
+{
+	size_t msgLen = strlen(msg) + 1;
+	strcpy_s(mSendBuf, msgLen, msg);
+	return registerSend();
+}
+
+void Session::Disconnect()
+{
+	if (mIsConnected.exchange(false) == false)
+		return;  // already disconnected
+
+	GetService()->ReleaseSession(static_pointer_cast<Session>(shared_from_this()));
+	OnDisconnect();  // for user overrrided implementaion
+}
+
+void Session::ProcessConnect()
+{
+	mConnectEvent.SetOwner(nullptr);  // release reference
+	mIsConnected.store(true);
+
+	// register session for service
+	GetService()->RegisterSession(static_pointer_cast<Session>(shared_from_this()));
+	OnConnect();  // for user overrrided implementaion
+	registerRecv();  // register recv event for the first time
+}
+
+void Session::ProcessRecv(int32 recvBytes)
+{
+	mRecvEvent.SetOwner(nullptr);  // release reference
+
+	if (recvBytes == 0)  // when disconnected
+	{
+		Logger::log_info("Client disconnected");
+		Disconnect();
+		return;
+	}
+
+	OnRecv(mRecvBuf, recvBytes);  // for user overrrided implementaion
+	registerRecv();  // register recv event again
+}
+
+void Session::ProcessSend(int32 sendBytes)
+{
+	mSendEvent.SetOwner(nullptr);  // release reference
+
+	if (sendBytes == 0)
+	{
+		Logger::log_info("Send 0");
+		Disconnect();
+		return;
+	}
+
+	OnSend(sendBytes);  // for user overrrided implementaion
+}
+
+bool Session::registerConnect()
+{
+	mConnectEvent.Init();
+	mConnectEvent.SetOwner(shared_from_this());
+
+	DWORD recvBytes = 0;
+	SOCKADDR_IN& sockAddr = GetService()->GetNetAddress().GetSocketAddr();
+	bool result = SocketUtils::ConnectEx(mSock, reinterpret_cast<SOCKADDR*>(&sockAddr), sizeof(sockAddr), nullptr, 0, &recvBytes, &mConnectEvent);
+	// bool result = SocketUtils::ConnectSocket(&mSock, sockAddr);
+	if (result == false)
+	{
+		int error = WSAGetLastError();
+		if (error != WSA_IO_PENDING)
+		{
+			mConnectEvent.SetOwner(nullptr); // release reference
+			return false;
+		}	
+	}
+
+	return true;
+}
+
+void Session::registerRecv()
 {
 	if (IsConnected() == false)
 		return;
 
 	// initialize IOCP event object
 	mRecvEvent.Init();
-	mRecvEvent.SetOwner(shared_from_this()); 
+	mRecvEvent.SetOwner(shared_from_this());
 
 	WSABUF dataBuf;
 	dataBuf.buf = mRecvBuf;
@@ -93,7 +192,7 @@ void Session::RegisterRecv()
 	DWORD recvBytes = 0;
 	DWORD flag = 0;
 
-	int result = ::WSARecv(GetSocket(), &dataBuf, 1, &recvBytes, &flag, &mRecvEvent, nullptr);
+	int result = ::WSARecv(mSock, &dataBuf, 1, &recvBytes, &flag, &mRecvEvent, nullptr);
 	if (result == SOCKET_ERROR)
 	{
 		int error = WSAGetLastError();
@@ -109,38 +208,31 @@ void Session::RegisterRecv()
 	}
 }
 
-void Session::ProcessConnect()
+bool Session::registerSend()
 {
-	// register connect 시 필요한 라인 
-	// mConnectEvent.SetOwner(nullptr);  // release reference
-	mIsConnected.store(true);
+	if (IsConnected() == false)
+		return false;
 
-	// register session for service
-	GetService()->RegisterSession(static_pointer_cast<Session>(shared_from_this()));
-	OnConnect();  // for user overrrided implementaion
-	RegisterRecv();  // register recv event for the first time
-}
+	// initialize IOCP event object
+	mSendEvent.Init();
+	mSendEvent.SetOwner(shared_from_this());
 
-void Session::ProcessRecv(int32 recvBytes)
-{
-	mRecvEvent.SetOwner(nullptr);  // release reference
+	WSABUF dataBuf;
+	dataBuf.buf = mSendBuf;
+	dataBuf.len = INPUT_BUF_SIZE;
 
-	if (recvBytes == 0)  // when disconnected
+	DWORD sendBytes = 0;
+	int result = ::WSASend(mSock, &dataBuf, 1, &sendBytes, 0, &mSendEvent, nullptr);
+	if (result == false)
 	{
-		Logger::log_info("Client disconnected");
-		Disconnect();
-		return;
+		int32 error = ::WSAGetLastError();
+		if (error != WSA_IO_PENDING)
+		{
+			Logger::log_error("Socket send data failed: {}", error);
+			mSendEvent.SetOwner(nullptr); // release reference
+			return false;
+		}
 	}
 
-	OnRecv(mRecvBuf, recvBytes);  // for user overrrided implementaion
-	RegisterRecv();  // register recv event again
-}
-
-void Session::Disconnect()
-{
-	if (mIsConnected.exchange(false) == false)
-		return;  // already disconnected
-
-	GetService()->ReleaseSession(static_pointer_cast<Session>(shared_from_this()));
-	OnDisconnect();  // for user overrrided implementaion
+	return true;
 }
