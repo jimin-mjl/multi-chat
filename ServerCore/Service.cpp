@@ -10,20 +10,47 @@
 	  Service
 ------------------*/
 
-Service::Service(uint32 ip, uint16 port, uint32 maxConnection, SessionFactory sf, ServiceType type)
+Service::Service(const char* ip, uint16 port, uint32 maxConnection, SessionFactory sf, ServiceType type)
 	: mMaxSessionCount(maxConnection)
 	, mSessionFactory(sf)
 	, mType(type)
 {
-	ASSERT_CRASH(SocketUtils::InitializeWS() == true);
 	mAddr = NetAddress(ip, port);
-	mIocpCore = std::make_shared<IocpCore>();
 }
 
 Service::~Service()
 {
+}
+
+bool Service::Initialize()
+{
+	// winsock initialization
+	if (SocketUtils::InitializeWS() == false)
+		return false;
+
+	// create IO completion port
+	mIocpCore = std::make_shared<IocpCore>();
+	return true;
+}
+
+void Service::Finalize()
+{
+	for (thread& worker : mIoWorkerThreads)
+	{
+		if (worker.joinable())
+			worker.join();
+	}
+
+	mIoWorkerThreads.clear();
+
 	mIocpCore = nullptr;
 	SocketUtils::CleanupWS();
+}
+
+void Service::Start()
+{
+	startIoWorkerThreads();
+	ASSERT_CRASH(start());
 }
 
 shared_ptr<Session> Service::CreateSession()
@@ -47,6 +74,18 @@ shared_ptr<Session> Service::CreateSession()
 //	lock_guard<mutex> lg(mMutex);
 //	return ++mCurrentSessionCount;
 //}
+
+void Service::startIoWorkerThreads()
+{
+	SYSTEM_INFO sysInfo = {};
+	GetSystemInfo(&sysInfo);
+	int32 numOfThreads = sysInfo.dwNumberOfProcessors;
+
+	for (int32 i = 0; i < numOfThreads; i++)
+	{
+		mIoWorkerThreads.push_back(thread(&IocpCore::Dispatch, mIocpCore, INFINITE));
+	}
+}
 
 shared_ptr<Session> Service::createEmptySession()
 {
@@ -73,20 +112,33 @@ void Service::ReleaseSession(shared_ptr<Session> session)
 	  ServerService
 ----------------------*/
 
-ServerService::ServerService(uint32 ip, uint16 port, uint32 maxConnection, SessionFactory sf)
+ServerService::ServerService(const char* ip, uint16 port, uint32 maxConnection, SessionFactory sf)
 	: Service(ip, port, maxConnection, sf, ServiceType::SERVER)
 {
-	mListener = std::make_shared<Listener>(maxConnection);
 }
 
 ServerService::~ServerService()
 {
+}
+
+bool ServerService::Initialize()
+{
+	if (Service::Initialize() == false)
+		return false;
+
+	mListener = std::make_shared<Listener>(GetMaxSessionCount());
+	return true;
+}
+
+void ServerService::Finalize()
+{
+	Service::Finalize();
 	mListener = nullptr;
 }
 
-bool ServerService::Start()
+bool ServerService::start()
 {
-	if (CanStart() == false)
+	if (canStart() == false)
 	{
 		Logger::log_error("Service start failed: No session factory provided");
 		return false;
@@ -109,15 +161,15 @@ bool ServerService::Start()
 	  ClientService
 ----------------------*/
 
-ClientService::ClientService(uint32 ip, uint16 port, uint32 maxConnection, SessionFactory sf)
+ClientService::ClientService(const char* ip, uint16 port, uint32 maxConnection, SessionFactory sf)
 	: Service(ip, port, maxConnection, sf, ServiceType::CLIENT)
 {
 
 }
 
-bool ClientService::Start()
+bool ClientService::start()
 {
-	if (CanStart() == false)
+	if (canStart() == false)
 		return false;
 
 	int32 sessionCount = GetMaxSessionCount();

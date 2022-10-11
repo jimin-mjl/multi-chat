@@ -34,19 +34,9 @@ uint64 Session::GetSessionId()
 	return mSessionId.load();
 }
 
-void Session::SetNetAddress(uint32 ip, uint16 port)
+void Session::SetNetAddress(SOCKADDR_IN addr)
 {
-	mAddr = NetAddress(ip, port);
-}
-
-uint32 Session::GetNetIp()
-{
-	return mAddr.ip;
-}
-
-uint16 Session::GetNetPort()
-{
-	return mAddr.port;
+	mAddr = NetAddress(addr);
 }
 
 shared_ptr<Service> Session::GetService()
@@ -60,7 +50,7 @@ HANDLE Session::GetHandle()
 	return reinterpret_cast<HANDLE>(mSock);
 }
 
-void Session::Dispatch(IocpEvent* event, int32 recvBytes)
+void Session::Dispatch(IocpEvent* event, int32 transferredBytes)
 {
 	switch (event->GetType())
 	{
@@ -68,10 +58,10 @@ void Session::Dispatch(IocpEvent* event, int32 recvBytes)
 		ProcessConnect();
 		break;
 	case EventType::RECV:
-		ProcessRecv(recvBytes);
+		ProcessRecv(transferredBytes);
 		break;
 	case EventType::SEND:
-		// ProcessSend();
+		ProcessSend(transferredBytes);
 		break;
 	default:
 		break;
@@ -83,17 +73,14 @@ bool Session::Connect()
 	if (IsConnected())
 		return false;
 
-	if (GetService()->GetType() != ServiceType::CLIENT)
-		return false;
-
 	// Set ReuseAddress option
 	bool option = true;
 	if (SocketUtils::SetSocketOption(&mSock, SOL_SOCKET, SO_REUSEADDR, static_cast<void*>(&option), sizeof(option)) == false)
 		return false;
 
 	// Bind socket
-	SetNetAddress(INADDR_ANY, 0);  // Bind any port
-	if (SocketUtils::BindSocket(&mSock, AF_INET, mAddr) == false)
+	mAddr = NetAddress(0);  // Bind any port
+	if (SocketUtils::BindSocket(&mSock, mAddr.GetSocketAddr()) == false)
 		return false;
 
 	return registerConnect();
@@ -122,8 +109,8 @@ void Session::ProcessConnect()
 
 	// register session for service
 	GetService()->RegisterSession(static_pointer_cast<Session>(shared_from_this()));
-	OnConnect();  // for user overrrided implementaion
 	registerRecv();  // register recv event for the first time
+	OnConnect();  // for user overrrided implementaion
 }
 
 void Session::ProcessRecv(int32 recvBytes)
@@ -163,17 +150,16 @@ bool Session::registerConnect()
 	DWORD recvBytes = 0;
 	SOCKADDR_IN& sockAddr = GetService()->GetNetAddress().GetSocketAddr();
 	bool result = SocketUtils::ConnectEx(mSock, reinterpret_cast<SOCKADDR*>(&sockAddr), sizeof(sockAddr), nullptr, 0, &recvBytes, &mConnectEvent);
-	// bool result = SocketUtils::ConnectSocket(&mSock, sockAddr);
 	if (result == false)
 	{
 		int error = WSAGetLastError();
 		if (error != WSA_IO_PENDING)
 		{
 			mConnectEvent.SetOwner(nullptr); // release reference
+			Logger::log_error("Registering connection failed: {}", error);
 			return false;
 		}	
 	}
-
 	return true;
 }
 

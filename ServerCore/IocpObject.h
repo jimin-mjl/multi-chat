@@ -15,7 +15,4 @@ public:
 	virtual HANDLE			GetHandle() abstract;
 	virtual void			Dispatch(IocpEvent* event, int32 bytes) abstract;
 	virtual bool			IsHandleValid() abstract;
-
-protected:
-	shared_ptr<IocpObject>	getSelfRef() { return shared_from_this(); }
 };

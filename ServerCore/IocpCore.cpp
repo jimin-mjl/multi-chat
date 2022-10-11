@@ -34,12 +34,12 @@ bool IocpCore::Dispatch(uint32 timeout)
 	int result = ::GetQueuedCompletionStatus(mCpObject, &recvBytes, &key, reinterpret_cast<LPOVERLAPPED*>(&iocpEvent), timeout);
 	if (result == false)
 	{
-		int32 error = ::WSAGetLastError();
-		Logger::log_error("Getting finished IOCP job failed: {}", error);
+		Logger::log_error("Getting finished IOCP job failed: {}", ::WSAGetLastError());
 		return false;
 	}
 
 	shared_ptr<IocpObject> iocpObject = iocpEvent->GetOwner();
+	ASSERT_CRASH(iocpObject != nullptr);
 	iocpObject->Dispatch(iocpEvent, recvBytes);
 
 	return true;

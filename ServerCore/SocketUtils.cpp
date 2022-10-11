@@ -39,7 +39,7 @@ bool SocketUtils::InitializeMsws()
 	SOCKET dummySocket = CreateSocket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
 	int32 result = ::WSAIoctl(dummySocket, SIO_GET_EXTENSION_FUNCTION_POINTER, &guidConnectEx, sizeof(guidConnectEx), fn, sizeof(ConnectEx), &bytes, NULL, NULL);
-	if (result == false)
+	if (result != 0)
 	{
 		Logger::log_error("Load ConnectEx fn failed: {}", WSAGetLastError());
 		CloseSocket(&dummySocket);
@@ -58,26 +58,20 @@ SOCKET SocketUtils::CreateSocket(int32 af, int32 type, int32 protocol)
 	SOCKET sock = ::WSASocket(af, type, protocol, NULL, 0, WSA_FLAG_OVERLAPPED);
 	if (sock == INVALID_SOCKET)
 	{
-		int error = WSAGetLastError();
-		Logger::log_error("Creating socket failed: {}", error);
+		Logger::log_error("Creating socket failed: {}", WSAGetLastError());
 		return INVALID_SOCKET;
 	}
-
-	::ioctlsocket(sock, FIONBIO, &mode);
+	
+	::ioctlsocket(sock, FIONBIO, &mode);  // IO mode non-blocking
 	return sock;
 }
 
-bool SocketUtils::BindSocket(SOCKET* sock, int32 af, const NetAddress& netaddr)
+bool SocketUtils::BindSocket(SOCKET* sock, SOCKADDR_IN& addr)
 {
-	SOCKADDR_IN addr = SOCKADDR_IN();
-	addr.sin_family = af;  
-	addr.sin_addr.s_addr = htonl(netaddr.ip);
-	addr.sin_port = htons(netaddr.port);
-
 	int32 result = ::bind(*sock, (sockaddr*)&addr, sizeof(addr));
 	if (result == SOCKET_ERROR)
 	{
-		Logger::log_error("Binding socket failed: {}", result);
+		Logger::log_error("Binding socket failed: {}", ::WSAGetLastError());
 		return false;
 	}
 
@@ -89,7 +83,7 @@ bool SocketUtils::ListenSocket(SOCKET* sock, int32 backlog)
 	int32 result = ::listen(*sock, backlog);
 	if (result == SOCKET_ERROR)
 	{
-		Logger::log_error("Listening socket failed: {}", result);
+		Logger::log_error("Listening socket failed: {}", ::WSAGetLastError());
 		return false;
 	}
 
@@ -98,6 +92,7 @@ bool SocketUtils::ListenSocket(SOCKET* sock, int32 backlog)
 
 bool SocketUtils::ConnectSocket(SOCKET* sock, SOCKADDR_IN& addr)
 {
+	//int32 result = ::WSAConnect(*sock, (sockaddr*)&addr, sizeof(addr),);
 	int32 result = ::connect(*sock, (sockaddr*)&addr, sizeof(addr));
 	if (result == SOCKET_ERROR)
 	{
@@ -126,7 +121,7 @@ bool SocketUtils::SetSocketOption(SOCKET* sock, int32 level, int32 optname,  con
 	int32 result = ::setsockopt(*sock, level, optname, static_cast<const char*>(val), len);
 	if (result == SOCKET_ERROR)
 	{
-		Logger::log_error("Setting socket option failed: {}", optname);
+		Logger::log_error("Setting socket option failed: {}", ::WSAGetLastError());
 		return false;
 	}
 

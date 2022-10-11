@@ -37,7 +37,7 @@ private:
 	bool	createSocket();
 	bool	setReuseAddr();
 	bool	setUpdateAcceptContext(SOCKET sock);
-	bool	bindSocket(const NetAddress& addr);
+	bool	bindSocket(NetAddress& addr);
 	bool	listenSocket();
 
 private:

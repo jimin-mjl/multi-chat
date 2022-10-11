@@ -15,7 +15,7 @@ public:
 	static void		CleanupWS();
 	static bool		InitializeMsws();
 	static SOCKET	CreateSocket(int32 af, int32 type, int32 protocol);
-	static bool		BindSocket(SOCKET* sock, int32 af, const NetAddress& netaddr);
+	static bool		BindSocket(SOCKET* sock, SOCKADDR_IN& addr);
 	static bool		ListenSocket(SOCKET* sock, int32 backlog = SOMAXCONN);
 	static bool		ConnectSocket(SOCKET* sock, SOCKADDR_IN& addr);
 	static void		ShutdownSocket(SOCKET* sock, int32 option);

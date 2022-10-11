@@ -25,10 +25,8 @@ public:
 	void				SetSocket(SOCKET sock);
 	void				SetSessionId(uint64 sid);
 	uint64				GetSessionId();
-	void				SetNetAddress(uint32 ip, uint16 port);
+	void				SetNetAddress(SOCKADDR_IN addr);
 	void				SetService(shared_ptr<Service> service) { mService = service; }
-	uint32				GetNetIp();
-	uint16				GetNetPort();
 	SOCKET				GetSocket() { return mSock; }
 	shared_ptr<Service> GetService();
 	bool				IsConnected() { return mIsConnected; }
@@ -37,6 +35,19 @@ public:
 	bool Connect();
 	bool Send(const char* msg);
 	void Disconnect();
+
+public:
+	/* Methods for user implementation */
+	virtual void	OnConnect() {}
+	virtual void	OnDisconnect() {}
+	virtual void	OnRecv(char* buffer, int32 recvBytes) {}
+	virtual void	OnSend(int32 sendBytes) {}
+
+public:
+	/* IocpObject Interface methods */
+	virtual HANDLE	GetHandle() override;
+	virtual bool	IsHandleValid() override;
+	virtual void	Dispatch(IocpEvent* event, int32 transferredBytes) override;
 
 public:
 	/* Event handler methods */
@@ -51,21 +62,8 @@ private:
 	bool registerSend();
 
 public:
-	/* Methods for user implementation */
-	virtual void	OnConnect() {}
-	virtual void	OnDisconnect() {}
-	virtual void	OnRecv(char* buffer, int32 recvBytes) {}
-	virtual void	OnSend(int32 sendBytes) {}
-
-public:
-	/* IocpObject Interface methods */
-	virtual HANDLE	GetHandle() override;
-	virtual bool	IsHandleValid() override;
-	virtual void	Dispatch(IocpEvent* event, int32 recvBytes) override;
-
-public:
-	char			mRecvBuf[OUTPUT_BUF_SIZE]; 
-	char			mSendBuf[INPUT_BUF_SIZE];
+	char			mRecvBuf[OUTPUT_BUF_SIZE] = {};
+	char			mSendBuf[INPUT_BUF_SIZE] = {};
 
 private:
 	atomic<uint64>	mSessionId = 0;

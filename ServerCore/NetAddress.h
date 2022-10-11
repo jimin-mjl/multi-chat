@@ -9,24 +9,35 @@ class NetAddress
 {
 public:
 	NetAddress() = default;
-	NetAddress(uint32 ip, uint16 port) : ip(ip), port(port)
+	NetAddress(const char* ip, uint16 port)
 	{
-		SetSocketAddr();
+		SetSocketAddr(ip, port);
+	}
+	NetAddress(uint16 port)
+	{
+		SetAnySocketAddr(port);
+	}
+	NetAddress(SOCKADDR_IN addr) : mSocketAddr(addr)
+	{
 	}
 
 public:
-	void			SetSocketAddr()
+	void			SetSocketAddr(const char* ip, uint16 port)
 	{
+		::memset(&mSocketAddr, 0,sizeof(mSocketAddr));
 		mSocketAddr.sin_family = AF_INET;
-		mSocketAddr.sin_addr.s_addr = htonl(ip);
-		mSocketAddr.sin_port = htons(port);
+		inet_pton(AF_INET, ip, &mSocketAddr.sin_addr.s_addr);
+		mSocketAddr.sin_port = ::htons(port);
+	}
+	void			SetAnySocketAddr(uint16 port)
+	{
+		::memset(&mSocketAddr, 0, sizeof(mSocketAddr));
+		mSocketAddr.sin_family = AF_INET;
+		mSocketAddr.sin_addr.s_addr = ::htonl(INADDR_ANY);
+		mSocketAddr.sin_port = ::htons(port);
 	}
 
 	SOCKADDR_IN&	GetSocketAddr() { return mSocketAddr; }
-
-public:
-	uint32 ip;
-	uint16 port;
 
 private:
 	SOCKADDR_IN mSocketAddr = {};

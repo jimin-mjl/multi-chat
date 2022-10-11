@@ -48,6 +48,7 @@ bool Listener::StartAccept(shared_ptr<ServerService> service)
 {
 	SetService(service); 
 
+	// create listening socket
 	if (createSocket() == false)
 		return false;
 
@@ -66,7 +67,7 @@ bool Listener::StartAccept(shared_ptr<ServerService> service)
 	for (int i = 0; i < mMaxConn; i++)
 	{
 		AcceptEvent* event = xnew<AcceptEvent>();
-		event->SetOwner(getSelfRef());
+		event->SetOwner(shared_from_this());
 		mAcceptEvents.push_back(event);
 		registerAccept(event);
 	}
@@ -111,9 +112,9 @@ bool Listener::setUpdateAcceptContext(SOCKET sock)
 	return SocketUtils::SetSocketOption(&mSock, SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT, static_cast<void*>(&sock), sizeof(sock));
 }
 
-bool Listener::bindSocket(const NetAddress& addr)
+bool Listener::bindSocket(NetAddress& addr)
 {
-	if (SocketUtils::BindSocket(&mSock, AF_INET, addr) == false)
+	if (SocketUtils::BindSocket(&mSock, addr.GetSocketAddr()) == false)
 		return false;
 	return true;
 }
@@ -127,12 +128,10 @@ bool Listener::listenSocket()
 
 void Listener::registerAccept(AcceptEvent* event)
 {
-	shared_ptr<ServerService> service = GetService();
-	shared_ptr<Session> session = service->CreateSession();
+	shared_ptr<Session> session = GetService()->CreateSession();
 	if (session == nullptr)
 	{
-		int32 error = ::WSAGetLastError();
-		Logger::log_error("Creating session while accepting client socket failed: {}", error);
+		Logger::log_error("Creating session failed, returned nullptr");
 		registerAccept(event);
 	}
 
@@ -141,6 +140,11 @@ void Listener::registerAccept(AcceptEvent* event)
 	event->SetSession(session);
 
 	DWORD recvBytes = 0;
+
+	SOCKADDR_IN addr = {};
+	int32 aSize = sizeof(addr);
+	// SOCKET clientSock = ::accept(mSock, (sockaddr*) & addr, &aSize);
+	// if (clientSock != INVALID_SOCKET) cout << "socket accepted" << endl;
 	bool result = ::AcceptEx(mSock, session->GetSocket(), session->mRecvBuf, 0, sizeof(SOCKADDR_IN) + 16, sizeof(SOCKADDR_IN) + 16, &recvBytes, static_cast<LPOVERLAPPED>(event));
 	if (result == false)
 	{
@@ -158,24 +162,21 @@ void Listener::processAccept(AcceptEvent* event)
 	shared_ptr<Session> session = event->GetSession();
 	if (setUpdateAcceptContext(session->GetSocket()) == false)
 	{
-		int32 error = ::WSAGetLastError();
-		Logger::log_error("Updating accept socket option failed: {}", error);
 		registerAccept(event);
 		return;
 	}
 
 	// Set session net address
-	SOCKADDR_IN addr;
+	SOCKADDR_IN addr = {};
 	int32 addrSize = sizeof(addr);
 	if (::getpeername(session->GetSocket(), reinterpret_cast<SOCKADDR*>(&addr), &addrSize) == SOCKET_ERROR)
 	{
-		int32 error = ::WSAGetLastError();
-		Logger::log_error("Getting accept socket address failed: {}", error);
+		Logger::log_error("Getting accept socket address failed: {}", ::WSAGetLastError());
 		registerAccept(event);
 		return;
 	}
 
-	session->SetNetAddress(addr.sin_addr.s_addr, addr.sin_port);
+	session->SetNetAddress(addr);
 	session->ProcessConnect(); 
 
 	registerAccept(event);  // reuse event object
