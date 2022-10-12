@@ -1,10 +1,6 @@
 .vs/
 Debug/
 ExternalLibs/
-chat.sln
-
-**/*.vcxproj
-**/*.vcxproj.filters
 
 # Created by https://www.toptal.com/developers/gitignore/api/c++,visualstudio
 # Edit at https://www.toptal.com/developers/gitignore?templates=c++,visualstudio

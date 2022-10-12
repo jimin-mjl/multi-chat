@@ -34,13 +34,6 @@ public:
 	virtual void	Dispatch(IocpEvent* event, int32 bytes) override;
 
 private:
-	bool	createSocket();
-	bool	setReuseAddr();
-	bool	setUpdateAcceptContext(SOCKET sock);
-	bool	bindSocket(NetAddress& addr);
-	bool	listenSocket();
-
-private:
 	/* Event handler methods */
 	void	registerAccept(AcceptEvent* event);
 	void	processAccept(AcceptEvent* event);

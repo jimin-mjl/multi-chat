@@ -49,19 +49,25 @@ bool Listener::StartAccept(shared_ptr<ServerService> service)
 	SetService(service); 
 
 	// create listening socket
-	if (createSocket() == false)
+	SOCKET sock = SocketUtils::CreateSocket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (!sock)
 		return false;
 
-	setReuseAddr();
+	mSock = sock;
+
+	bool option = true;
+	SocketUtils::SetSocketOption(&mSock, SOL_SOCKET, SO_REUSEADDR, static_cast<void*>(&option), sizeof(option));
 
 	// register listening socket for CP object
 	if (service->GetIocpCore()->Register(shared_from_this()) == false) 
 		return false;
 
-	if (bindSocket(service->GetNetAddress()) == false)
+	// bind listening socket
+	if (SocketUtils::BindSocket(&mSock, service->GetNetAddress().GetSocketAddr()) == false)
 		return false;
 
-	if (listenSocket() == false)
+	// start listening 
+	if (SocketUtils::ListenSocket(&mSock) == false)
 		return false;
 
 	for (int i = 0; i < mMaxConn; i++)
@@ -88,42 +94,6 @@ bool Listener::IsHandleValid()
 void Listener::Dispatch(IocpEvent* event, int32 bytes)
 {
 	processAccept(static_cast<AcceptEvent*>(event));
-}
-
-bool Listener::createSocket()
-{
-	SOCKET sock = SocketUtils::CreateSocket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (!sock)
-		return false;
-
-	mSock = sock;
-	return true;
-}
-
-bool Listener::setReuseAddr()
-{
-	bool option = true;
-	return SocketUtils::SetSocketOption(&mSock, SOL_SOCKET, SO_REUSEADDR, static_cast<void*>(&option), sizeof(option));
-}
-
-// Set listen socket options to accept socket
-bool Listener::setUpdateAcceptContext(SOCKET sock)
-{
-	return SocketUtils::SetSocketOption(&mSock, SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT, static_cast<void*>(&sock), sizeof(sock));
-}
-
-bool Listener::bindSocket(NetAddress& addr)
-{
-	if (SocketUtils::BindSocket(&mSock, addr.GetSocketAddr()) == false)
-		return false;
-	return true;
-}
-
-bool Listener::listenSocket()
-{
-	if (SocketUtils::ListenSocket(&mSock) == false)
-		return false;
-	return true;
 }
 
 void Listener::registerAccept(AcceptEvent* event)
@@ -160,7 +130,9 @@ void Listener::registerAccept(AcceptEvent* event)
 void Listener::processAccept(AcceptEvent* event)
 {
 	shared_ptr<Session> session = event->GetSession();
-	if (setUpdateAcceptContext(session->GetSocket()) == false)
+	SOCKET acceptSock = session->GetSocket();
+	int32 result = SocketUtils::SetSocketOption(&acceptSock, SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT, static_cast<void*>(&acceptSock), sizeof(acceptSock));
+	if (result == false)
 	{
 		registerAccept(event);
 		return;

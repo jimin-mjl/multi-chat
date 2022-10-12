@@ -2,9 +2,9 @@
 
 // include library files
 #ifdef _DEBUG
-#pragma comment(lib, "Debug\\ServerCore.lib")
+#pragma comment(lib, "Libs\\ServerCore\\Debug\\ServerCore.lib")
 #else
-#pragma comment(lib, "Release\\ServerCore.lib")
+#pragma comment(lib, "Libs\\ServerCore\\Release\\ServerCore.lib")
 #endif 
 
 // Standard libraries
