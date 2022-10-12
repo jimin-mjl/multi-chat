@@ -42,10 +42,8 @@ public:
 protected:
 	bool					canStart() { return mSessionFactory != nullptr; }
 	virtual bool			start() abstract;
-
-private:
-	// uint64					generateSessionId();
 	void					startIoWorkerThreads();
+	void					joinIoWorkerThreads();
 
 protected:
 	mutex						mMutex;

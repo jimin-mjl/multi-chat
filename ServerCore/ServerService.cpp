@@ -18,6 +18,17 @@ ServerService::~ServerService()
 {
 }
 
+void ServerService::Finalize()
+{
+	joinIoWorkerThreads();
+	mIocpCore = nullptr;
+
+	if (mListenSock != INVALID_SOCKET)
+		SocketUtils::CloseSocket(&mListenSock);
+	
+	SocketUtils::CleanupWS();
+}
+
 bool ServerService::start()
 {
 	if (canStart() == false)

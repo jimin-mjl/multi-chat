@@ -34,14 +34,7 @@ bool Service::Initialize()
 
 void Service::Finalize()
 {
-	for (thread& worker : mIoWorkerThreads)
-	{
-		if (worker.joinable())
-			worker.join();
-	}
-
-	mIoWorkerThreads.clear();
-
+	joinIoWorkerThreads();
 	mIocpCore = nullptr;
 	SocketUtils::CleanupWS();
 }
@@ -67,13 +60,6 @@ shared_ptr<Session> Service::CreateSession()
 	return session;
 }
 
-//uint64 Service::generateSessionId()
-//{
-//	// TODO : compare_exchange_weak
-//	lock_guard<mutex> lg(mMutex);
-//	return ++mCurrentSessionCount;
-//}
-
 void Service::startIoWorkerThreads()
 {
 	SYSTEM_INFO sysInfo = {};
@@ -84,6 +70,17 @@ void Service::startIoWorkerThreads()
 	{
 		mIoWorkerThreads.push_back(thread(&IocpCore::Dispatch, mIocpCore, INFINITE));
 	}
+}
+
+void Service::joinIoWorkerThreads()
+{
+	for (thread& worker : mIoWorkerThreads)
+	{
+		if (worker.joinable())
+			worker.join();
+	}
+
+	mIoWorkerThreads.clear();
 }
 
 void Service::RegisterSession(shared_ptr<Session> session)

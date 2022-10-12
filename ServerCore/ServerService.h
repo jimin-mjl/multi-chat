@@ -12,6 +12,7 @@ public:
 	virtual ~ServerService();
 
 public:
+	virtual void	Finalize() override;
 	SOCKET			GetListeningSocket() { return mListenSock; }
 
 protected:
@@ -20,5 +21,5 @@ protected:
 	void			registerAccept(AcceptEvent* event);
 
 private:
-	SOCKET mListenSock;
+	SOCKET mListenSock = INVALID_SOCKET;
 };

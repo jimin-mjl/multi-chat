@@ -15,9 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ThreadManager.cpp">
-      <Filter>Memory</Filter>
-    </ClCompile>
     <ClCompile Include="Service.cpp">
       <Filter>Network</Filter>
     </ClCompile>
@@ -42,9 +39,6 @@
     <ClCompile Include="IocpEvent.cpp">
       <Filter>Network</Filter>
     </ClCompile>
-    <ClCompile Include="Listener.cpp">
-      <Filter>Network</Filter>
-    </ClCompile>
     <ClCompile Include="ServerService.cpp">
       <Filter>Service</Filter>
     </ClCompile>
@@ -55,9 +49,6 @@
   <ItemGroup>
     <ClInclude Include="Types.h">
       <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="ThreadManager.h">
-      <Filter>Memory</Filter>
     </ClInclude>
     <ClInclude Include="SocketUtils.h">
       <Filter>Network</Filter>
@@ -90,9 +81,6 @@
       <Filter>Network</Filter>
     </ClInclude>
     <ClInclude Include="IocpObject.h">
-      <Filter>Network</Filter>
-    </ClInclude>
-    <ClInclude Include="Listener.h">
       <Filter>Network</Filter>
     </ClInclude>
     <ClInclude Include="NetAddress.h">

@@ -2,7 +2,6 @@
 #include "ClientService.h"
 #include "IocpCore.h"
 #include "Session.h"
-#include "ThreadManager.h"
 
 constexpr int32 MAX_CONNECTION = 10;
 constexpr int16 PORT = 27015;
