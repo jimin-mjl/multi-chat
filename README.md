@@ -14,3 +14,5 @@
 2. 클라이언트 세션 생성 및 Accept Event 등록 
 3. 각 스레드가 GetQueuedCompletionStatus() 함수를 호출해서 꺼내온 이벤트를 처리
 
+## 코드 상세 흐름
+[코드 흐름]("./코드흐름.xlsx") 참고
