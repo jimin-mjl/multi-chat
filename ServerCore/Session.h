@@ -1,6 +1,6 @@
 #pragma once
 #include "IocpEvent.h"
-#include "IocpObject.h"
+#include "IocpHandler.h"
 #include "NetAddress.h"
 
 class Service;
@@ -15,7 +15,7 @@ class Service;
 constexpr int OUTPUT_BUF_SIZE = 1024;
 constexpr int INPUT_BUF_SIZE = 1024;
 
-class Session : public IocpObject
+class Session : public IocpHandler
 {
 public:
 	Session() = default;
@@ -44,7 +44,7 @@ public:
 	virtual void	OnSend(int32 sendBytes) {}
 
 public:
-	/* IocpObject Interface methods */
+	/* IocpHandler Interface methods */
 	virtual HANDLE	GetHandle() override;
 	virtual bool	IsHandleValid() override;
 	virtual void	Dispatch(IocpEvent* event, int32 transferredBytes) override;

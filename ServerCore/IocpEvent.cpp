@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "IocpEvent.h"
-#include "IocpObject.h"
+#include "IocpHandler.h"
 
 /*--------------
 	IocpEvent
@@ -26,12 +26,12 @@ void IocpEvent::Init()
 	OVERLAPPED::OffsetHigh = 0;
 }
 
-void IocpEvent::SetOwner(shared_ptr<IocpObject> obj)
+void IocpEvent::SetOwner(shared_ptr<IocpHandler> obj)
 {
 	mOwner = obj;
 }
 
-shared_ptr<IocpObject> IocpEvent::GetOwner()
+shared_ptr<IocpHandler> IocpEvent::GetOwner()
 {
 	return mOwner;
 }

@@ -15,9 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Service.cpp">
-      <Filter>Network</Filter>
-    </ClCompile>
     <ClCompile Include="Session.cpp">
       <Filter>Network</Filter>
     </ClCompile>
@@ -29,9 +26,6 @@
     </ClCompile>
     <ClCompile Include="CorePch.cpp">
       <Filter>Utils</Filter>
-    </ClCompile>
-    <ClCompile Include="Allocator.cpp">
-      <Filter>Network</Filter>
     </ClCompile>
     <ClCompile Include="IocpCore.cpp">
       <Filter>Network</Filter>
@@ -45,15 +39,18 @@
     <ClCompile Include="ClientService.cpp">
       <Filter>Service</Filter>
     </ClCompile>
+    <ClCompile Include="Allocator.cpp">
+      <Filter>Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="Service.cpp">
+      <Filter>Service</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Types.h">
       <Filter>Utils</Filter>
     </ClInclude>
     <ClInclude Include="SocketUtils.h">
-      <Filter>Network</Filter>
-    </ClInclude>
-    <ClInclude Include="Service.h">
       <Filter>Network</Filter>
     </ClInclude>
     <ClInclude Include="Session.h">
@@ -71,16 +68,13 @@
     <ClInclude Include="CorePch.h">
       <Filter>Utils</Filter>
     </ClInclude>
-    <ClInclude Include="Allocator.h">
-      <Filter>Network</Filter>
-    </ClInclude>
     <ClInclude Include="IocpCore.h">
       <Filter>Network</Filter>
     </ClInclude>
     <ClInclude Include="IocpEvent.h">
       <Filter>Network</Filter>
     </ClInclude>
-    <ClInclude Include="IocpObject.h">
+    <ClInclude Include="IocpHandler.h">
       <Filter>Network</Filter>
     </ClInclude>
     <ClInclude Include="NetAddress.h">
@@ -90,6 +84,12 @@
       <Filter>Service</Filter>
     </ClInclude>
     <ClInclude Include="ClientService.h">
+      <Filter>Service</Filter>
+    </ClInclude>
+    <ClInclude Include="Allocator.h">
+      <Filter>Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="Service.h">
       <Filter>Service</Filter>
     </ClInclude>
   </ItemGroup>

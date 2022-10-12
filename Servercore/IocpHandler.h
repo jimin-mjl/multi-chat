@@ -3,13 +3,13 @@
 class IocpEvent;
 
 /*--------------------------------
-			IocpObject
+			IocpHandler
 
 	: Abstract base class 
 	for IOCP process interface
 ---------------------------------*/
 
-class IocpObject : public enable_shared_from_this<IocpObject>
+class IocpHandler : public enable_shared_from_this<IocpHandler>
 {
 public:
 	virtual HANDLE			GetHandle() abstract;

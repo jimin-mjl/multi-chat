@@ -16,7 +16,7 @@ enum class EventType
 	: 
 ---------------*/
 
-class IocpObject;
+class IocpHandler;
 
 class IocpEvent : public OVERLAPPED
 {
@@ -24,13 +24,13 @@ public:
 	IocpEvent();
 	IocpEvent(EventType type);
 	void Init();
-	void SetOwner(shared_ptr<IocpObject> obj);
-	shared_ptr<IocpObject> GetOwner();
+	void SetOwner(shared_ptr<IocpHandler> obj);
+	shared_ptr<IocpHandler> GetOwner();
 	EventType GetType();
 
 private:
 	EventType mType = EventType::NONE;
-	shared_ptr<IocpObject> mOwner = nullptr;
+	shared_ptr<IocpHandler> mOwner = nullptr;
 };
 
 /*----------------

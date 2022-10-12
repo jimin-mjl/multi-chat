@@ -85,7 +85,7 @@ void ServerService::registerAccept(AcceptEvent* event)
 
 	// reset event content for reuse
 	event->Init();
-	event->SetOwner(static_pointer_cast<IocpObject>(session));
+	event->SetOwner(static_pointer_cast<IocpHandler>(session));
 
 	DWORD recvBytes = 0;
 	bool result = ::AcceptEx(mListenSock, session->GetSocket(), session->mRecvBuf, 0, sizeof(SOCKADDR_IN) + 16, sizeof(SOCKADDR_IN) + 16, &recvBytes, static_cast<LPOVERLAPPED>(event));

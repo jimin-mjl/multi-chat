@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "IocpCore.h"
 #include "IocpEvent.h"
-#include "IocpObject.h"
+#include "IocpHandler.h"
 
 /*--------------
 	IocpCore
@@ -38,9 +38,9 @@ bool IocpCore::Dispatch(uint32 timeout)
 		return false;
 	}
 
-	shared_ptr<IocpObject> iocpObject = iocpEvent->GetOwner();
-	ASSERT_CRASH(iocpObject != nullptr);
-	iocpObject->Dispatch(iocpEvent, recvBytes);
+	shared_ptr<IocpHandler> IocpHandler = iocpEvent->GetOwner();
+	ASSERT_CRASH(IocpHandler != nullptr);
+	IocpHandler->Dispatch(iocpEvent, recvBytes);
 
 	return true;
 }
