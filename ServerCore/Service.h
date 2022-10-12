@@ -3,7 +3,6 @@
 
 class Session;
 class IocpCore;
-class Listener;
 
 enum class ServiceType : int16
 {
@@ -48,16 +47,14 @@ private:
 	// uint64					generateSessionId();
 	void					startIoWorkerThreads();
 
-private:
+protected:
 	mutex						mMutex;
 	ServiceType					mType;
 	NetAddress					mAddr;
+	shared_ptr<IocpCore>		mIocpCore;
 	set<shared_ptr<Session>>	mSessions;
 	SessionFactory				mSessionFactory = nullptr;
 	uint32						mCurrentSessionCount = 0;
 	uint32						mMaxSessionCount = 0;
 	vector<thread>				mIoWorkerThreads;
-
-private:
-	shared_ptr<IocpCore>		mIocpCore;
 };

@@ -41,11 +41,6 @@ class AcceptEvent : public IocpEvent
 {
 public:
 	AcceptEvent();
-	void SetSession(shared_ptr<Session> session) { mSession = session; }
-	shared_ptr<Session> GetSession() { return mSession; }
-
- private:
-	 shared_ptr<Session> mSession = nullptr;
 };
 
 /*-----------------

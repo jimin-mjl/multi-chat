@@ -51,6 +51,7 @@ public:
 
 public:
 	/* Event handler methods */
+	void ProcessAccept();
 	void ProcessConnect();
 	void ProcessRecv(int32 recvBytes);
 	void ProcessSend(int32 sendBytes);

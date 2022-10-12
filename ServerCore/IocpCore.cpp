@@ -19,9 +19,9 @@ IocpCore::~IocpCore()
 		::CloseHandle(mCpObject);
 }
 
-bool IocpCore::Register(shared_ptr<IocpObject> obj)
+bool IocpCore::Register(SOCKET sock)
 {
-	return ::CreateIoCompletionPort(obj->GetHandle(), mCpObject, 0, 0) != NULL;
+	return ::CreateIoCompletionPort(reinterpret_cast<HANDLE>(sock), mCpObject, 0, 0) != NULL;
 }
 
 /* Entrance function for threads */

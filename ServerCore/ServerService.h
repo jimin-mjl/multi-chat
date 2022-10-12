@@ -12,12 +12,13 @@ public:
 	virtual ~ServerService();
 
 public:
-	virtual bool Initialize() override;
-	virtual void Finalize() override;
+	SOCKET			GetListeningSocket() { return mListenSock; }
 
 protected:
-	virtual bool start() override;
+	virtual bool	start() override;
+	bool			startAccept();
+	void			registerAccept(AcceptEvent* event);
 
 private:
-	shared_ptr<Listener>	mListener;
+	SOCKET mListenSock;
 };

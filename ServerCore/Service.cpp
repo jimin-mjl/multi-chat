@@ -4,7 +4,6 @@
 #include "SocketUtils.h"
 #include "IocpCore.h"
 #include "NetAddress.h"
-#include "Listener.h"
 
 /*-----------------
 	  Service
@@ -62,7 +61,7 @@ shared_ptr<Session> Service::CreateSession()
 
 	session->SetSocket(sock);
 	session->SetService(shared_from_this());
-	if (mIocpCore->Register(session) == false)
+	if (mIocpCore->Register(sock) == false)
 		return nullptr;
 
 	return session;

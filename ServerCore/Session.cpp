@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "IocpEvent.h"
 #include "Session.h"
-#include "Service.h"
+#include "ServerService.h"
 #include "SocketUtils.h"
 
 /*-----------------
@@ -54,6 +54,10 @@ void Session::Dispatch(IocpEvent* event, int32 transferredBytes)
 {
 	switch (event->GetType())
 	{
+	case EventType::ACCEPT:
+		ProcessAccept();
+		xdelete(event);
+		break;
 	case EventType::CONNECT:
 		ProcessConnect();
 		break;
@@ -102,10 +106,33 @@ void Session::Disconnect()
 	OnDisconnect();  // for user overrrided implementaion
 }
 
+void Session::ProcessAccept()
+{
+	shared_ptr<Service> service = GetService();
+	if (service->GetType() != ServiceType::SERVER)
+		return;
+
+	SOCKET listenSock = static_pointer_cast<ServerService>(service)->GetListeningSocket();
+	int32 result = SocketUtils::SetSocketOption(&mSock, SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT, static_cast<void*>(&listenSock), sizeof(listenSock));
+	if (result == false)
+		return;
+
+	// Set network address
+	SOCKADDR_IN addr = {};
+	int32 addrSize = sizeof(addr);
+	if (::getpeername(mSock, reinterpret_cast<SOCKADDR*>(&addr), &addrSize) == SOCKET_ERROR)
+	{
+		Logger::log_error("Getting accept socket address failed: {}", ::WSAGetLastError());
+		return;
+	}
+	SetNetAddress(addr);
+	ProcessConnect();
+}
+
 void Session::ProcessConnect()
 {
 	mConnectEvent.SetOwner(nullptr);  // release reference
-	mIsConnected.store(true);
+	mIsConnected.store(true);  // TODO : Lock °É±â
 
 	// register session for service
 	GetService()->RegisterSession(static_pointer_cast<Session>(shared_from_this()));

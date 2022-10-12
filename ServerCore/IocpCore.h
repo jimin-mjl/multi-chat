@@ -14,7 +14,7 @@ public:
 	~IocpCore();
 
 public:
-	bool	Register(shared_ptr<class IocpObject> obj);
+	bool	Register(SOCKET sock);
 	bool	Dispatch(uint32 timeout = INFINITE);
 
 private:
