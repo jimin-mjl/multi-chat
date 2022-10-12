@@ -1,18 +1,18 @@
 # IOCP Network Library 
 
-## Å¬·¡½º ¼³¸í
-- Service : ¼ÒÄÏ »ý¼º ¹× ¿¬°á ÀÌº¥Æ® µî·Ï 
+## í´ëž˜ìŠ¤ ì„¤ëª…
+- Service : ì†Œì¼“ ìƒì„± ë° ì—°ê²° ì´ë²¤íŠ¸ ë“±ë¡ 
     - ServerService
     - ClientService
-- IocpHandler : IOCP¿¡ µî·ÏµÈ ÀÌº¥Æ® Ã³¸®
+- IocpHandler : IOCPì— ë“±ë¡ëœ ì´ë²¤íŠ¸ ì²˜ë¦¬
     - Session
-- IocpCore : IOCP °ü¸®(¼ÒÄÏ µî·Ï ¹× ÀÌº¥Æ® Àü´Þ)
-- IocpEvent : IO ÀÌº¥Æ® ÄÁÅØ½ºÆ® °ü¸® 
+- IocpCore : IOCP ê´€ë¦¬(ì†Œì¼“ ë“±ë¡ ë° ì´ë²¤íŠ¸ ì „ë‹¬)
+- IocpEvent : IO ì´ë²¤íŠ¸ ì»¨í…ìŠ¤íŠ¸ ê´€ë¦¬ 
 
-## ÄÚµå ±âº» Èå¸§
-1. IOCP »ý¼º
-2. Å¬¶óÀÌ¾ðÆ® ¼¼¼Ç »ý¼º ¹× Accept Event µî·Ï 
-3. °¢ ½º·¹µå°¡ GetQueuedCompletionStatus() ÇÔ¼ö¸¦ È£ÃâÇØ¼­ ²¨³»¿Â ÀÌº¥Æ®¸¦ Ã³¸®
+## ì½”ë“œ ê¸°ë³¸ íë¦„
+1. IOCP ìƒì„±
+2. í´ë¼ì´ì–¸íŠ¸ ì„¸ì…˜ ìƒì„± ë° Accept Event ë“±ë¡ 
+3. ê° ìŠ¤ë ˆë“œê°€ GetQueuedCompletionStatus() í•¨ìˆ˜ë¥¼ í˜¸ì¶œí•´ì„œ êº¼ë‚´ì˜¨ ì´ë²¤íŠ¸ë¥¼ ì²˜ë¦¬
 
-## ÄÚµå »ó¼¼ Èå¸§
-[ÄÚµå Èå¸§]("./ÄÚµåÈå¸§.xlsx") Âü°í
+## ì½”ë“œ ìƒì„¸ íë¦„
+[ì½”ë“œ íë¦„](%EC%BD%94%EB%93%9C%ED%9D%90%EB%A6%84.xlsx) ì°¸ê³ 
