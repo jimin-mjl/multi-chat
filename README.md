@@ -11,8 +11,8 @@
 
 ## 코드 기본 흐름
 1. IOCP 생성
-2. 클라이언트 세션 생성 및 Accept Event 등록 
-3. 각 스레드가 GetQueuedCompletionStatus() 함수를 호출해서 꺼내온 이벤트를 처리
+2. 클라이언트 세션 생성 및 연결/IO Event 등록 (`RegisterEventName()`)
+3. 각 스레드가 GetQueuedCompletionStatus() 함수를 호출해서 꺼내온 이벤트를 처리(`ProcessEventName()`)
 
 ## 코드 상세 흐름
 [코드 흐름](%EC%BD%94%EB%93%9C%ED%9D%90%EB%A6%84.xlsx) 참고
