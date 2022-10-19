@@ -88,7 +88,7 @@ void ServerService::registerAccept(AcceptEvent* event)
 	event->SetOwner(static_pointer_cast<IocpHandler>(session));
 
 	DWORD recvBytes = 0;
-	bool result = ::AcceptEx(mListenSock, session->GetSocket(), session->mRecvBuf, 0, sizeof(SOCKADDR_IN) + 16, sizeof(SOCKADDR_IN) + 16, &recvBytes, static_cast<LPOVERLAPPED>(event));
+	bool result = ::AcceptEx(mListenSock, session->GetSocket(), event->mRecvBuffer, 0, sizeof(SOCKADDR_IN) + 16, sizeof(SOCKADDR_IN) + 16, &recvBytes, static_cast<LPOVERLAPPED>(event));
 	if (result == false)
 	{
 		int32 error = ::WSAGetLastError();

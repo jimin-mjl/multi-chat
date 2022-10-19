@@ -45,6 +45,9 @@
     <ClCompile Include="Service.cpp">
       <Filter>Service</Filter>
     </ClCompile>
+    <ClCompile Include="CircularBuffer.cpp">
+      <Filter>Network</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Types.h">
@@ -91,6 +94,9 @@
     </ClInclude>
     <ClInclude Include="Service.h">
       <Filter>Service</Filter>
+    </ClInclude>
+    <ClInclude Include="CircularBuffer.h">
+      <Filter>Network</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

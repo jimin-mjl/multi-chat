@@ -39,8 +39,16 @@ private:
 
 class AcceptEvent : public IocpEvent
 {
+	enum
+	{
+		BUFFER_SIZE = 1024
+	};
+
 public:
 	AcceptEvent();
+
+public:
+	char mRecvBuffer[BUFFER_SIZE];
 };
 
 /*-----------------

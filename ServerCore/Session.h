@@ -4,6 +4,7 @@
 #include "NetAddress.h"
 
 class Service;
+class CircularBuffer;
 
 /*------------------------------------
 				Session
@@ -12,16 +13,19 @@ class Service;
 	and processing IOCP events
 -------------------------------------*/
 
-constexpr int OUTPUT_BUF_SIZE = 1024;
 constexpr int INPUT_BUF_SIZE = 1024;
 
 class Session : public IocpHandler
 {
-public:
-	Session() = default;
-	~Session();
+	enum
+	{
+		BUFFER_SIZE = 65536  // 0x10000
+	};
 
 public:
+	Session();
+	~Session();
+
 	void				SetSocket(SOCKET sock);
 	void				SetSessionId(uint64 sid);
 	uint64				GetSessionId();
@@ -31,16 +35,15 @@ public:
 	shared_ptr<Service> GetService();
 	bool				IsConnected() { return mIsConnected; }
 	
-public:
-	bool Connect();
-	bool Send(const char* msg);
-	void Disconnect();
+	bool				Connect();
+	bool				Send(const char* msg);
+	void				Disconnect();
 
 public:
-	/* Methods for user implementation */
+	/* Methods for user level implementation */
 	virtual void	OnConnect() {}
 	virtual void	OnDisconnect() {}
-	virtual void	OnRecv(char* buffer, int32 recvBytes) {}
+	virtual int32	OnRecv(char* buffer, int32 recvBytes) { return recvBytes; }
 	virtual void	OnSend(int32 sendBytes) {}
 
 public:
@@ -49,22 +52,23 @@ public:
 	virtual bool	IsHandleValid() override;
 	virtual void	Dispatch(IocpEvent* event, int32 transferredBytes) override;
 
-public:
-	/* Event handler methods */
-	void ProcessAccept();
-	void ProcessConnect();
-	void ProcessRecv(int32 recvBytes);
-	void ProcessSend(int32 sendBytes);
-
 private:
 	/* Event registration methods */
 	bool registerConnect();
 	void registerRecv();
 	bool registerSend();
 
+	/* Event handler methods */
+	void processAccept();
+	void processConnect();
+	void processRecv(int32 recvBytes);
+	void processSend(int32 sendBytes);
+
 public:
-	char			mRecvBuf[OUTPUT_BUF_SIZE] = {};
 	char			mSendBuf[INPUT_BUF_SIZE] = {};
+
+private:
+	shared_ptr<CircularBuffer> mRecvBuffer = nullptr;
 
 private:
 	atomic<uint64>	mSessionId = 0;

@@ -11,6 +11,14 @@ constexpr int16 PORT = 27015;
 
 class ChatSession : public Session
 {
+public:
+	virtual int32 OnRecv(char* buffer, int32 recvBytes)
+	{
+		cout << "Recv Bytes: " << recvBytes << endl;
+
+		Send("hi");
+		return recvBytes;
+	}
 };
 
 int main()

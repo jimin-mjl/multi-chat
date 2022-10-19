@@ -1,4 +1,5 @@
-#include "pch.h"
+﻿#include "pch.h"
+#include "CircularBuffer.h"
 #include "IocpEvent.h"
 #include "Session.h"
 #include "ServerService.h"
@@ -8,9 +9,15 @@
 	  Session
 ------------------*/
 
+Session::Session()
+{
+	mRecvBuffer = make_shared<CircularBuffer>(BUFFER_SIZE);
+}
+
 Session::~Session()
 {
 	mService.reset();
+	mRecvBuffer.reset();
 	SocketUtils::CloseSocket(&mSock);
 }
 
@@ -55,17 +62,17 @@ void Session::Dispatch(IocpEvent* event, int32 transferredBytes)
 	switch (event->GetType())
 	{
 	case EventType::ACCEPT:
-		ProcessAccept();
+		processAccept();
 		xdelete(event);
 		break;
 	case EventType::CONNECT:
-		ProcessConnect();
+		processConnect();
 		break;
 	case EventType::RECV:
-		ProcessRecv(transferredBytes);
+		processRecv(transferredBytes);
 		break;
 	case EventType::SEND:
-		ProcessSend(transferredBytes);
+		processSend(transferredBytes);
 		break;
 	default:
 		break;
@@ -106,69 +113,6 @@ void Session::Disconnect()
 	OnDisconnect();  // for user overrrided implementaion
 }
 
-void Session::ProcessAccept()
-{
-	shared_ptr<Service> service = GetService();
-	if (service->GetType() != ServiceType::SERVER)
-		return;
-
-	SOCKET listenSock = static_pointer_cast<ServerService>(service)->GetListeningSocket();
-	int32 result = SocketUtils::SetSocketOption(&mSock, SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT, static_cast<void*>(&listenSock), sizeof(listenSock));
-	if (result == false)
-		return;
-
-	// Set network address
-	SOCKADDR_IN addr = {};
-	int32 addrSize = sizeof(addr);
-	if (::getpeername(mSock, reinterpret_cast<SOCKADDR*>(&addr), &addrSize) == SOCKET_ERROR)
-	{
-		Logger::log_error("Getting accept socket address failed: {}", ::WSAGetLastError());
-		return;
-	}
-	SetNetAddress(addr);
-	ProcessConnect();
-}
-
-void Session::ProcessConnect()
-{
-	mConnectEvent.SetOwner(nullptr);  // release reference
-	mIsConnected.store(true);  // TODO : Lock �ɱ�
-
-	// register session for service
-	GetService()->RegisterSession(static_pointer_cast<Session>(shared_from_this()));
-	registerRecv();  // register recv event for the first time
-	OnConnect();  // for user overrrided implementaion
-}
-
-void Session::ProcessRecv(int32 recvBytes)
-{
-	mRecvEvent.SetOwner(nullptr);  // release reference
-
-	if (recvBytes == 0)  // when disconnected
-	{
-		Logger::log_info("Client disconnected");
-		Disconnect();
-		return;
-	}
-
-	OnRecv(mRecvBuf, recvBytes);  // for user overrrided implementaion
-	registerRecv();  // register recv event again
-}
-
-void Session::ProcessSend(int32 sendBytes)
-{
-	mSendEvent.SetOwner(nullptr);  // release reference
-
-	if (sendBytes == 0)
-	{
-		Logger::log_info("Send 0");
-		Disconnect();
-		return;
-	}
-
-	OnSend(sendBytes);  // for user overrrided implementaion
-}
-
 bool Session::registerConnect()
 {
 	mConnectEvent.Init();
@@ -199,9 +143,9 @@ void Session::registerRecv()
 	mRecvEvent.Init();
 	mRecvEvent.SetOwner(shared_from_this());
 
-	WSABUF dataBuf;
-	dataBuf.buf = mRecvBuf;
-	dataBuf.len = OUTPUT_BUF_SIZE;
+	WSABUF dataBuf = {};
+	dataBuf.buf = mRecvBuffer->WritePos();
+	dataBuf.len = mRecvBuffer->Size();
 	DWORD recvBytes = 0;
 	DWORD flag = 0;
 
@@ -214,10 +158,6 @@ void Session::registerRecv()
 			Logger::log_error("Socket recv data failed: {}", error);
 			mRecvEvent.SetOwner(nullptr);
 		}
-	}
-	else  // returned immediately 
-	{
-		ProcessRecv(recvBytes);
 	}
 }
 
@@ -248,4 +188,82 @@ bool Session::registerSend()
 	}
 
 	return true;
+}
+
+void Session::processAccept()
+{
+	shared_ptr<Service> service = GetService();
+	if (service->GetType() != ServiceType::SERVER)
+		return;
+
+	SOCKET listenSock = static_pointer_cast<ServerService>(service)->GetListeningSocket();
+	int32 result = SocketUtils::SetSocketOption(&mSock, SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT, static_cast<void*>(&listenSock), sizeof(listenSock));
+	if (result == false)
+		return;
+
+	// Set network address
+	SOCKADDR_IN addr = {};
+	int32 addrSize = sizeof(addr);
+	if (::getpeername(mSock, reinterpret_cast<SOCKADDR*>(&addr), &addrSize) == SOCKET_ERROR)
+	{
+		Logger::log_error("Getting accept socket address failed: {}", ::WSAGetLastError());
+		return;
+	}
+	SetNetAddress(addr);
+	processConnect();
+}
+
+void Session::processConnect()
+{
+	mConnectEvent.SetOwner(nullptr);  // release reference
+	mIsConnected.store(true);  // TODO : Lock 걸기
+
+	// register session for service
+	GetService()->RegisterSession(static_pointer_cast<Session>(shared_from_this()));
+	registerRecv();  // register recv event for the first time
+	OnConnect();  // for user overrrided implementaion
+}
+
+void Session::processRecv(int32 recvBytes)
+{
+	mRecvEvent.SetOwner(nullptr);  // release reference
+
+	if (recvBytes == 0)  // when disconnected
+	{
+		Logger::log_info("Client disconnected");
+		Disconnect();
+		return;
+	}
+
+	if (mRecvBuffer->OnWrite(recvBytes) == false)
+	{
+		Logger::log_info("Data write overflow");
+		Disconnect();
+		return;
+	}
+
+	int32 dataSize = mRecvBuffer->DataSize();
+	int32 processedBytes = OnRecv(mRecvBuffer->ReadPos(), dataSize);
+	if (processedBytes < 0 || dataSize < processedBytes ||  mRecvBuffer->OnRead(processedBytes) == false)
+	{
+		Logger::log_info("read overflow");
+		Disconnect();
+		return;
+	}
+
+	registerRecv();  // register recv event again
+}
+
+void Session::processSend(int32 sendBytes)
+{
+	mSendEvent.SetOwner(nullptr);  // release reference
+
+	if (sendBytes == 0)
+	{
+		Logger::log_info("Send 0");
+		Disconnect();
+		return;
+	}
+
+	OnSend(sendBytes);  // for user overrrided implementaion
 }
