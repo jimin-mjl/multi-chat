@@ -48,6 +48,7 @@ void Service::Start()
 shared_ptr<Session> Service::CreateSession()
 {
 	shared_ptr<Session> session = mSessionFactory();
+
 	SOCKET sock = SocketUtils::CreateSocket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (!sock)
 		return nullptr;
@@ -68,7 +69,13 @@ void Service::startIoWorkerThreads()
 
 	for (int32 i = 0; i < numOfThreads; i++)
 	{
-		mIoWorkerThreads.push_back(thread(&IocpCore::Dispatch, mIocpCore, INFINITE));
+		mIoWorkerThreads.push_back(thread([=]() 
+			{
+				while (true)
+				{
+					mIocpCore->Dispatch(INFINITE);
+				}
+			}));
 	}
 }
 

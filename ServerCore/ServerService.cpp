@@ -29,6 +29,41 @@ void ServerService::Finalize()
 	SocketUtils::CleanupWS();
 }
 
+shared_ptr<Session> ServerService::CreateSession()
+{
+	// 반환된 소켓이 있으면 재사용한다
+	{
+		lock_guard<mutex> writeLock(mSocketLock);
+
+		if (mAvailableSocks.empty() == false)
+		{
+			SOCKET sock = mAvailableSocks.front();
+			mAvailableSocks.pop();
+
+			shared_ptr<Session> session = mSessionFactory();
+			session->SetSocket(sock);
+			session->SetService(shared_from_this());
+
+			return session;
+		}
+	}
+
+	//  사용 가능한 소켓이 없으면 새로 만들어서 cp에 등록 후 사용한다
+	return Service::CreateSession();
+}
+
+void ServerService::ReclaimAcceptEvent(AcceptEvent* event)
+{
+	// 이벤트를 다시 걸어준다
+	registerAccept(event);
+}
+
+void ServerService::ReclaimSocket(SOCKET sock)
+{
+	lock_guard<mutex> writeLock(mSocketLock);
+	mAvailableSocks.push(sock);
+}
+
 bool ServerService::start()
 {
 	if (canStart() == false)
@@ -68,6 +103,7 @@ bool ServerService::startAccept()
 	for (uint32 i = 0; i < mMaxSessionCount; i++)
 	{
 		AcceptEvent* event = xnew<AcceptEvent>();
+		mAcceptEvents.push_back(event);
 		registerAccept(event);
 	}
 

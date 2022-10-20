@@ -34,13 +34,21 @@ bool IocpCore::Dispatch(uint32 timeout)
 	int result = ::GetQueuedCompletionStatus(mCpObject, &recvBytes, &key, reinterpret_cast<LPOVERLAPPED*>(&iocpEvent), timeout);
 	if (result == false)
 	{
-		Logger::log_error("Getting finished IOCP job failed: {}", ::WSAGetLastError());
-		return false;
+		int32 error = ::WSAGetLastError();
+		if (error == ERROR_NETNAME_DELETED)  // 클라이언트 비정상 종료
+		{
+			Logger::log_info("Client closed unexpectedly");
+		}
+		else
+		{
+			Logger::log_error("Getting finished IOCP job failed: {}", error);
+			return false;
+		}
 	}
 
-	shared_ptr<IocpHandler> IocpHandler = iocpEvent->GetOwner();
-	ASSERT_CRASH(IocpHandler != nullptr);
-	IocpHandler->Dispatch(iocpEvent, recvBytes);
+	shared_ptr<IocpHandler> iocpHandler = iocpEvent->GetOwner();
+	ASSERT_CRASH(iocpHandler != nullptr);
+	iocpHandler->Dispatch(iocpEvent, recvBytes);
 
 	return true;
 }

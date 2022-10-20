@@ -19,69 +19,67 @@ class Session : public IocpHandler
 {
 	enum
 	{
-		BUFFER_SIZE = 65536  // 0x10000
+		RECV_BUFFER_SIZE = 0x10000,  // 65536
+		SEND_BUFFER_SIZE = 0x1000  // 4096
 	};
 
 public:
 	Session();
 	~Session();
 
-	void				SetSocket(SOCKET sock);
-	void				SetSessionId(uint64 sid);
-	uint64				GetSessionId();
-	void				SetNetAddress(SOCKADDR_IN addr);
+	void				SetSocket(SOCKET sock) { mSock = sock; }
+	void				SetNetAddress(SOCKADDR_IN addr) { mAddr = NetAddress(addr); }
 	void				SetService(shared_ptr<Service> service) { mService = service; }
 	SOCKET				GetSocket() { return mSock; }
 	shared_ptr<Service> GetService();
-	bool				IsConnected() { return mIsConnected; }
+	bool				IsConnected() { return mIsConnected.load(); }
 	
 	bool				Connect();
-	bool				Send(const char* msg);
 	void				Disconnect();
+	bool				Send(const char* msg);
 
-public:
-	/* Methods for user level implementation */
-	virtual void	OnConnect() {}
-	virtual void	OnDisconnect() {}
-	virtual int32	OnRecv(char* buffer, int32 recvBytes) { return recvBytes; }
-	virtual void	OnSend(int32 sendBytes) {}
-
-public:
 	/* IocpHandler Interface methods */
-	virtual HANDLE	GetHandle() override;
-	virtual bool	IsHandleValid() override;
-	virtual void	Dispatch(IocpEvent* event, int32 transferredBytes) override;
+	virtual HANDLE		GetHandle() override { return reinterpret_cast<HANDLE>(mSock); }
+	virtual bool		IsHandleValid() override { return mSock != INVALID_SOCKET; };
+	virtual void		Dispatch(IocpEvent* event, int32 transferredBytes) override;
+
+	/* Methods for user level implementation */
+	virtual void		OnConnect() {}
+	virtual void		OnDisconnect() {}
+	virtual int32		OnRecv(char* buffer, int32 recvBytes) { return recvBytes; }
+	virtual void		OnSend(int32 sendBytes) {}
 
 private:
 	/* Event registration methods */
-	bool registerConnect();
-	void registerRecv();
-	bool registerSend();
+	bool				registerConnect();
+	void				registerDisconnect();
+	void				registerRecv();
+	void				registerSend();
 
 	/* Event handler methods */
-	void processAccept();
-	void processConnect();
-	void processRecv(int32 recvBytes);
-	void processSend(int32 sendBytes);
+	void				processAccept(AcceptEvent* event);
+	void				processConnect();
+	void				processDisconnect();
+	void				processRecv(int32 recvBytes);
+	void				processSend(int32 sendBytes);
 
-public:
-	char			mSendBuf[INPUT_BUF_SIZE] = {};
-
-private:
-	shared_ptr<CircularBuffer> mRecvBuffer = nullptr;
+	void				handleError(const char* reason, int32 error = SOCKET_ERROR);
 
 private:
-	atomic<uint64>	mSessionId = 0;
-	SOCKET			mSock = INVALID_SOCKET;  // client socket handle
-	NetAddress		mAddr = {};
-	atomic<bool>	mIsConnected = false;
+	SOCKET									mSock = INVALID_SOCKET;  // client socket handle
+	NetAddress								mAddr = {};
+	atomic<bool>							mIsConnected = false;
+	weak_ptr<Service>						mService;
 
-private:
-	weak_ptr<Service>	mService;
+	/* IO buffers */
+	mutex									mSendLock;
+	atomic<bool>							mIsSendOccupied = false;
+	queue<shared_ptr<CircularBuffer>>		mSendQueue;
+	shared_ptr<CircularBuffer>				mRecvBuffer = nullptr;
 
-private:
 	/* reusable event objects */
-	ConnectEvent		mConnectEvent = {};
-	RecvEvent			mRecvEvent = {};
-	SendEvent			mSendEvent = {};
+	ConnectEvent							mConnectEvent = {};
+	RecvEvent								mRecvEvent = {};
+	SendEvent								mSendEvent = {};
+	DisconnectEvent							mDisconnectEvent = {};
 };

@@ -6,7 +6,8 @@
 	SocketUtils
 ------------------*/
 
-LPFN_CONNECTEX SocketUtils::ConnectEx = nullptr;
+LPFN_CONNECTEX		SocketUtils::ConnectEx = nullptr;
+LPFN_DISCONNECTEX	SocketUtils::DisconnectEx = nullptr;
 
 bool SocketUtils::InitializeWS()
 {
@@ -32,28 +33,36 @@ void SocketUtils::CleanupWS()
 
 bool SocketUtils::InitializeMsws()
 {
-	/* Load the ConnectEx function into memory using WSAIoctl at runtime */
-	GUID guidConnectEx = WSAID_CONNECTEX;
-	LPVOID* fn = reinterpret_cast<LPVOID*>(&ConnectEx);
-	DWORD bytes = 0;
+	/* 런타임에 함수 포인터를 메모리에 가져온다 */
+	LPVOID* connectFn = reinterpret_cast<LPVOID*>(&ConnectEx);
+	LPVOID* disconnectFn = reinterpret_cast<LPVOID*>(&DisconnectEx);
 	SOCKET dummySocket = CreateSocket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
-	int32 result = ::WSAIoctl(dummySocket, SIO_GET_EXTENSION_FUNCTION_POINTER, &guidConnectEx, sizeof(guidConnectEx), fn, sizeof(ConnectEx), &bytes, NULL, NULL);
-	if (result != 0)
+	bool isConnectSucced = GetExFuncPtr(&dummySocket, WSAID_CONNECTEX, connectFn);
+	bool isDisconnectSucced = GetExFuncPtr(&dummySocket, WSAID_DISCONNECTEX, disconnectFn);
+
+	CloseSocket(&dummySocket);
+	
+	if (isConnectSucced == false || isDisconnectSucced == false)
 	{
-		Logger::log_error("Load ConnectEx fn failed: {}", WSAGetLastError());
-		CloseSocket(&dummySocket);
+		Logger::log_error("Load Ex function failed: {}", WSAGetLastError());
 		CleanupWS();
 		return false;
 	}
 
-	CloseSocket(&dummySocket);
 	return true;
+}
+
+bool SocketUtils::GetExFuncPtr(SOCKET* sock, GUID guid, LPVOID* fn)
+{
+	DWORD bytes = 0;
+	int32 result = ::WSAIoctl(*sock, SIO_GET_EXTENSION_FUNCTION_POINTER, &guid, sizeof(guid), fn, sizeof(*fn), &bytes, NULL, NULL);
+	return result == 0;
 }
 
 SOCKET SocketUtils::CreateSocket(int32 af, int32 type, int32 protocol)
 {
-	// creates non-blocking socket
+	// non-blocking socket 생성
 	u_long mode = 1;
 	SOCKET sock = ::WSASocket(af, type, protocol, NULL, 0, WSA_FLAG_OVERLAPPED);
 	if (sock == INVALID_SOCKET)
@@ -85,22 +94,6 @@ bool SocketUtils::ListenSocket(SOCKET* sock, int32 backlog)
 	{
 		Logger::log_error("Listening socket failed: {}", ::WSAGetLastError());
 		return false;
-	}
-
-	return true;
-}
-
-bool SocketUtils::ConnectSocket(SOCKET* sock, SOCKADDR_IN& addr)
-{
-	//int32 result = ::WSAConnect(*sock, (sockaddr*)&addr, sizeof(addr),);
-	int32 result = ::connect(*sock, (sockaddr*)&addr, sizeof(addr));
-	if (result == SOCKET_ERROR)
-	{
-		if (result != WSAEWOULDBLOCK)
-		{
-			Logger::log_error("Connecting socket failed: {}", WSAGetLastError());
-			return false;
-		}
 	}
 
 	return true;

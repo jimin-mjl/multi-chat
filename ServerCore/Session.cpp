@@ -11,39 +11,19 @@
 
 Session::Session()
 {
-	mRecvBuffer = make_shared<CircularBuffer>(BUFFER_SIZE);
+	mRecvBuffer = make_shared<CircularBuffer>(RECV_BUFFER_SIZE);
 }
 
 Session::~Session()
 {
-	mService.reset();
-	mRecvBuffer.reset();
-	SocketUtils::CloseSocket(&mSock);
-}
-
-void Session::SetSocket(SOCKET sock)
-{
-	mSock = sock;
-}
-
-bool Session::IsHandleValid()
-{
-	return mSock != INVALID_SOCKET;
-}
-
-void Session::SetSessionId(uint64 sid)
-{
-	mSessionId.store(sid);
-}
-
-uint64 Session::GetSessionId()
-{
-	return mSessionId.load();
-}
-
-void Session::SetNetAddress(SOCKADDR_IN addr)
-{
-	mAddr = NetAddress(addr);
+	shared_ptr<Service> service = GetService();
+	if (service->GetType() == ServiceType::SERVER)
+	{
+		// 서버측에서는 소켓 재사용을 위해 소켓을 반납한다. 
+		static_pointer_cast<ServerService>(service)->ReclaimSocket(mSock);
+	}
+	else
+		SocketUtils::CloseSocket(&mSock);
 }
 
 shared_ptr<Service> Session::GetService()
@@ -52,21 +32,18 @@ shared_ptr<Service> Session::GetService()
 	return mService.lock();
 }
 
-HANDLE Session::GetHandle()
-{
-	return reinterpret_cast<HANDLE>(mSock);
-}
-
 void Session::Dispatch(IocpEvent* event, int32 transferredBytes)
 {
 	switch (event->GetType())
 	{
 	case EventType::ACCEPT:
-		processAccept();
-		xdelete(event);
+		processAccept(static_cast<AcceptEvent*>(event));
 		break;
 	case EventType::CONNECT:
 		processConnect();
+		break;
+	case EventType::DISCONNECT:
+		processDisconnect();
 		break;
 	case EventType::RECV:
 		processRecv(transferredBytes);
@@ -97,20 +74,35 @@ bool Session::Connect()
 	return registerConnect();
 }
 
-bool Session::Send(const char* msg)
-{
-	size_t msgLen = strlen(msg) + 1;
-	strcpy_s(mSendBuf, msgLen, msg);
-	return registerSend();
-}
-
 void Session::Disconnect()
 {
 	if (mIsConnected.exchange(false) == false)
-		return;  // already disconnected
-
+		return;  // already disconnected 
+	
 	GetService()->ReleaseSession(static_pointer_cast<Session>(shared_from_this()));
-	OnDisconnect();  // for user overrrided implementaion
+	registerDisconnect();
+	OnDisconnect();
+}
+
+bool Session::Send(const char* msg)
+{
+	// Send Buffer 구성
+	int32 msgLen = sizeof(msg);
+	shared_ptr<CircularBuffer> sendBuffer = make_shared<CircularBuffer>(SEND_BUFFER_SIZE, 1);
+	if (sendBuffer->OnWrite(msgLen) == false)
+		return false;
+	::memcpy(sendBuffer->WritePos(), msg, msgLen);
+
+	{
+		lock_guard<mutex> writeLock(mSendLock);
+		mSendQueue.push(sendBuffer);
+	}
+
+	// send 이벤트의 순차 처리를 위해 send 플래그가 false일 때만 이벤트를 등록한다.
+	if (mIsSendOccupied.exchange(true) == false)
+		registerSend();
+
+	return true;
 }
 
 bool Session::registerConnect()
@@ -134,6 +126,24 @@ bool Session::registerConnect()
 	return true;
 }
 
+void Session::registerDisconnect() 
+{
+	// initialize IOCP event object
+	mDisconnectEvent.Init();
+	mDisconnectEvent.SetOwner(shared_from_this());
+
+	bool result = SocketUtils::DisconnectEx(mSock, &mDisconnectEvent, TF_REUSE_SOCKET, 0);  // 소켓 재사용 플래그 전달
+	if (result == false)
+	{
+		int error = WSAGetLastError();
+		if (error != WSA_IO_PENDING)
+		{
+			mDisconnectEvent.SetOwner(nullptr); // release reference
+			Logger::log_error("Register disconnect failed: {}", error);
+		}
+	}
+}
+
 void Session::registerRecv()
 {
 	if (IsConnected() == false)
@@ -155,48 +165,64 @@ void Session::registerRecv()
 		int error = WSAGetLastError();
 		if (error != WSA_IO_PENDING)
 		{
-			Logger::log_error("Socket recv data failed: {}", error);
 			mRecvEvent.SetOwner(nullptr);
+			handleError("Register recv failed: {}", error);
 		}
 	}
 }
 
-bool Session::registerSend()
+void Session::registerSend()
 {
 	if (IsConnected() == false)
-		return false;
+		return;
 
 	// initialize IOCP event object
 	mSendEvent.Init();
 	mSendEvent.SetOwner(shared_from_this());
 
-	WSABUF dataBuf;
-	dataBuf.buf = mSendBuf;
-	dataBuf.len = INPUT_BUF_SIZE;
+	// sendQueue에 등록된 sendBuffer를 모두 꺼내서 한꺼번에 보낸다 (scatter-gather)
+	{
+		lock_guard<mutex> writeLock(mSendLock);
+		while (mSendQueue.empty() == false)
+		{
+			mSendEvent.mSendBuffers.push_back(mSendQueue.front());
+			mSendQueue.pop();
+		}
+	}
+
+	vector<WSABUF> dataBufs;
+	dataBufs.reserve(mSendEvent.mSendBuffers.size());
+	for (shared_ptr<CircularBuffer> buffer : mSendEvent.mSendBuffers)
+	{
+		WSABUF dataBuf = {};
+		dataBuf.buf = buffer->ReadPos();
+		dataBuf.len = buffer->DataSize();
+		dataBufs.push_back(dataBuf);
+	}
 
 	DWORD sendBytes = 0;
-	int result = ::WSASend(mSock, &dataBuf, 1, &sendBytes, 0, &mSendEvent, nullptr);
+	int result = ::WSASend(mSock, dataBufs.data(), static_cast<DWORD>(dataBufs.size()), &sendBytes, 0, &mSendEvent, nullptr);
 	if (result == false)
 	{
 		int32 error = ::WSAGetLastError();
 		if (error != WSA_IO_PENDING)
 		{
-			Logger::log_error("Socket send data failed: {}", error);
 			mSendEvent.SetOwner(nullptr); // release reference
-			return false;
+			mIsSendOccupied.store(false);
+			handleError("Register send failed: {}", error);
 		}
 	}
-
-	return true;
 }
 
-void Session::processAccept()
+void Session::processAccept(AcceptEvent* event)
 {
-	shared_ptr<Service> service = GetService();
+	event->SetOwner(nullptr);  // release ref
+
+	shared_ptr<ServerService> service = static_pointer_cast<ServerService>(GetService());
 	if (service->GetType() != ServiceType::SERVER)
 		return;
 
-	SOCKET listenSock = static_pointer_cast<ServerService>(service)->GetListeningSocket();
+	SOCKET listenSock = service->GetListeningSocket();
 	int32 result = SocketUtils::SetSocketOption(&mSock, SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT, static_cast<void*>(&listenSock), sizeof(listenSock));
 	if (result == false)
 		return;
@@ -206,22 +232,29 @@ void Session::processAccept()
 	int32 addrSize = sizeof(addr);
 	if (::getpeername(mSock, reinterpret_cast<SOCKADDR*>(&addr), &addrSize) == SOCKET_ERROR)
 	{
-		Logger::log_error("Getting accept socket address failed: {}", ::WSAGetLastError());
+		Logger::log_error("Get client socket address failed: {}", ::WSAGetLastError());
 		return;
 	}
 	SetNetAddress(addr);
 	processConnect();
+	service->ReclaimAcceptEvent(event);  // 이벤트 반납
 }
 
 void Session::processConnect()
 {
 	mConnectEvent.SetOwner(nullptr);  // release reference
-	mIsConnected.store(true);  // TODO : Lock 걸기
+	mIsConnected.store(true);  
 
 	// register session for service
 	GetService()->RegisterSession(static_pointer_cast<Session>(shared_from_this()));
 	registerRecv();  // register recv event for the first time
 	OnConnect();  // for user overrrided implementaion
+}
+
+void Session::processDisconnect()
+{
+	cout << "process disconnect" << endl;
+	mDisconnectEvent.SetOwner(nullptr);  // release reference
 }
 
 void Session::processRecv(int32 recvBytes)
@@ -230,15 +263,14 @@ void Session::processRecv(int32 recvBytes)
 
 	if (recvBytes == 0)  // when disconnected
 	{
-		Logger::log_info("Client disconnected");
-		Disconnect();
+		cout << "recv 0" << endl;
+		handleError("Client disconnected");
 		return;
 	}
 
 	if (mRecvBuffer->OnWrite(recvBytes) == false)
 	{
-		Logger::log_info("Data write overflow");
-		Disconnect();
+		handleError("Write overflow");
 		return;
 	}
 
@@ -246,8 +278,7 @@ void Session::processRecv(int32 recvBytes)
 	int32 processedBytes = OnRecv(mRecvBuffer->ReadPos(), dataSize);
 	if (processedBytes < 0 || dataSize < processedBytes ||  mRecvBuffer->OnRead(processedBytes) == false)
 	{
-		Logger::log_info("read overflow");
-		Disconnect();
+		handleError("Read overflow");
 		return;
 	}
 
@@ -260,10 +291,24 @@ void Session::processSend(int32 sendBytes)
 
 	if (sendBytes == 0)
 	{
-		Logger::log_info("Send 0");
-		Disconnect();
+		handleError("Send 0");
 		return;
 	}
 
-	OnSend(sendBytes);  // for user overrrided implementaion
+	OnSend(sendBytes);  // for user implementaion
+	
+	// sendQueue를 확인해서 남은 buffer가 있으면 마저 보내고 아니면 플래그를 풀어준다. 
+	{
+		lock_guard<mutex> writeLock(mSendLock);
+		if (mSendQueue.empty() == false)
+			registerSend();
+		else
+			mIsSendOccupied.store(false);
+	}
+}
+
+void Session::handleError(const char* reason, int32 error)
+{
+	Logger::log_info(reason, error);
+	Disconnect();
 }

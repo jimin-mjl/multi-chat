@@ -18,6 +18,7 @@ bool ClientService::start()
 		return false;
 
 	int32 sessionCount = GetMaxSessionCount();
+	vector<shared_ptr<Session>> sessions;
 	for (int32 i = 0; i < sessionCount; i++)
 	{
 		shared_ptr<Session> session = CreateSession();
@@ -27,7 +28,16 @@ bool ClientService::start()
 
 		if (session->Connect() == false)
 			return false;
+
+		sessions.push_back(session);
 	}
+
+	/*this_thread::sleep_for(3s);
+
+	for (shared_ptr<Session> session : sessions)
+	{
+		session->Disconnect();
+	}*/
 
 	return true;
 }

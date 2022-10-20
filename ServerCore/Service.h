@@ -32,12 +32,12 @@ public:
 	uint32					GetCurrSessionCount() { return mCurrentSessionCount; }
 	
 public:
-	virtual bool			Initialize();
-	virtual void			Finalize();
-	void					Start();
-	shared_ptr<Session>		CreateSession();
-	void					RegisterSession(shared_ptr<Session> session);
-	void					ReleaseSession(shared_ptr<Session> session);
+	virtual bool					Initialize();
+	virtual void					Finalize();
+	void							Start();
+	virtual shared_ptr<Session>		CreateSession();
+	void							RegisterSession(shared_ptr<Session> session);
+	void							ReleaseSession(shared_ptr<Session> session);
 
 protected:
 	bool					canStart() { return mSessionFactory != nullptr; }

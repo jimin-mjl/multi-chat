@@ -68,11 +68,26 @@ SendEvent::SendEvent()
 {
 }
 
+void SendEvent::Init()
+{
+	IocpEvent::Init();
+	mSendBuffers.clear();
+}
+
 /*--------------
 	RecvEvent
 ---------------*/
 
 RecvEvent::RecvEvent()
 	: IocpEvent(EventType::RECV)
+{
+}
+
+/*-------------------
+	DisconnectEvent
+--------------------*/
+
+DisconnectEvent::DisconnectEvent()
+	: IocpEvent(EventType::DISCONNECT)
 {
 }

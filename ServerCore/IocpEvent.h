@@ -9,14 +9,16 @@ enum class EventType
 	ACCEPT,
 	SEND,
 	RECV,
+	DISCONNECT,
 };
 
-/*--------------
-	IocpEvent
-	: 
----------------*/
+/*--------------------------------------------------
+						IocpEvent
+	: Iocp event context 관리를 위한 데이터 클래스
+---------------------------------------------------*/
 
 class IocpHandler;
+class CircularBuffer;
 
 class IocpEvent : public OVERLAPPED
 {
@@ -69,6 +71,10 @@ class SendEvent : public IocpEvent
 {
 public:
 	SendEvent();
+	void Init();
+
+public:
+	vector<shared_ptr<CircularBuffer>> mSendBuffers;
 };
 
 /*--------------
@@ -79,4 +85,19 @@ class RecvEvent : public IocpEvent
 {
 public:
 	RecvEvent();
+};
+
+/*-------------------
+	DisconnectEvent
+--------------------*/
+
+class DisconnectEvent : public IocpEvent
+{
+public:
+	DisconnectEvent();
+	void	SetSocket(SOCKET sock) { mSock = sock; }
+	SOCKET	GetSocket() { return mSock; }
+
+public:
+	SOCKET mSock = INVALID_SOCKET;
 };
