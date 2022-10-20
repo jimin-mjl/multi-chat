@@ -3,40 +3,9 @@
 #include "ServerService.h"
 #include "IocpCore.h"
 
-#include "SocketUtils.h"
-#include "NetAddress.h"
 
 constexpr int32 MAX_CONNECTION = 5;
 constexpr int16 PORT = 27015;
-
-class ChatSession : public Session
-{
-public:
-	virtual void OnConnect() override
-	{
-		cout << "Connected" << endl;
-		// Send("hi from client");
-	}
-
-	virtual void OnSend(int32 sendBytes) override
-	{
-		cout << "Msg sent : " << sendBytes << endl;
-	}
-
-	virtual int32 OnRecv(char* buffer, int32 recvBytes)
-	{
-		cout << "recv bytes: " << recvBytes << endl;
-		cout << "recv content: " << buffer << endl;
-
-		Send("hi from server");
-		return recvBytes;
-	}
-
-	virtual void OnDisconnect()
-	{
-		cout << "Disconnected" << endl;
-	}
-};
 
 int main()
 {

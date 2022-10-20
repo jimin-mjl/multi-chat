@@ -34,9 +34,10 @@ public:
 	shared_ptr<Service> GetService();
 	bool				IsConnected() { return mIsConnected.load(); }
 	
-	bool				Connect();
-	void				Disconnect();
-	bool				Send(const char* msg);
+	bool							Connect();
+	void							Disconnect();
+	bool							Send(shared_ptr<CircularBuffer> buffer);
+	shared_ptr<CircularBuffer>		CreateSendBuffer(const char* msg);
 
 	/* IocpHandler Interface methods */
 	virtual HANDLE		GetHandle() override { return reinterpret_cast<HANDLE>(mSock); }

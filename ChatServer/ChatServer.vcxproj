@@ -26,8 +26,12 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="ChatSession.cpp" />
+    <ClCompile Include="ChatSessionManager.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ChatSession.h" />
+    <ClInclude Include="ChatSessionManager.h" />
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

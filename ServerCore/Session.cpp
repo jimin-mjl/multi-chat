@@ -84,18 +84,11 @@ void Session::Disconnect()
 	OnDisconnect();
 }
 
-bool Session::Send(const char* msg)
+bool Session::Send(shared_ptr<CircularBuffer> buffer)
 {
-	// Send Buffer 구성
-	int32 msgLen = sizeof(msg);
-	shared_ptr<CircularBuffer> sendBuffer = make_shared<CircularBuffer>(SEND_BUFFER_SIZE, 1);
-	if (sendBuffer->OnWrite(msgLen) == false)
-		return false;
-	::memcpy(sendBuffer->WritePos(), msg, msgLen);
-
 	{
 		lock_guard<mutex> writeLock(mSendLock);
-		mSendQueue.push(sendBuffer);
+		mSendQueue.push(buffer);
 	}
 
 	// send 이벤트의 순차 처리를 위해 send 플래그가 false일 때만 이벤트를 등록한다.
@@ -103,6 +96,17 @@ bool Session::Send(const char* msg)
 		registerSend();
 
 	return true;
+}
+
+shared_ptr<CircularBuffer> Session::CreateSendBuffer(const char* msg)
+{
+	// Send Buffer 구성
+	int32 msgLen = sizeof(msg);
+	shared_ptr<CircularBuffer> buffer = make_shared<CircularBuffer>(SEND_BUFFER_SIZE, 1);
+	if (buffer->OnWrite(msgLen) == false)
+		return false;
+	::memcpy(buffer->WritePos(), msg, msgLen);
+	return buffer;
 }
 
 bool Session::registerConnect()
