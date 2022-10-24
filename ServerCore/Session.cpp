@@ -79,9 +79,7 @@ void Session::Disconnect()
 	if (mIsConnected.exchange(false) == false)
 		return;  // already disconnected 
 	
-	GetService()->ReleaseSession(static_pointer_cast<Session>(shared_from_this()));
 	registerDisconnect();
-	OnDisconnect();
 }
 
 bool Session::Send(shared_ptr<CircularBuffer> buffer)
@@ -257,6 +255,8 @@ void Session::processConnect()
 void Session::processDisconnect()
 {
 	mDisconnectEvent.SetOwner(nullptr);  // release reference
+	GetService()->ReleaseSession(static_pointer_cast<Session>(shared_from_this()));
+	OnDisconnect();
 }
 
 void Session::processRecv(int32 recvBytes)

@@ -6,7 +6,7 @@
 #include "IocpCore.h"
 
 
-constexpr int32 MAX_CONNECTION = 5;
+constexpr int32 MAX_CONNECTION = 1000;
 constexpr int16 PORT = 27015;
 
 int main()

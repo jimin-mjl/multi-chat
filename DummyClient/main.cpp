@@ -4,7 +4,7 @@
 #include "IocpCore.h"
 #include "Session.h"
 
-constexpr int32 MAX_CONNECTION = 5;
+constexpr int32 MAX_CONNECTION = 1000;
 constexpr int16 PORT = 27015;
 
 class ServerSession : public Session
@@ -14,19 +14,17 @@ public:
 	{
 		cout << "Connected" << endl;
 
-		string msg = "Hello from client";
+		string msg = "Echo my message";
 		shared_ptr<CircularBuffer> buffer = CreateSendBuffer(msg.c_str(), static_cast<int32>(msg.size()));
 		Send(buffer);
 	}
 
 	virtual void OnSend(int32 sendBytes) override
 	{
-		cout << "Msg sent : " << sendBytes << endl;
 	}
 
 	virtual int32 OnRecv(char* buffer, int32 recvBytes) override
 	{
-		cout << "recv bytes: " << recvBytes << endl;
 		cout << buffer << endl;
 		return recvBytes;
 	}
