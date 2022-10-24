@@ -21,7 +21,6 @@
   <ItemGroup>
     <ClCompile Include="Allocator.cpp" />
     <ClCompile Include="CircularBuffer.cpp" />
-    <ClCompile Include="CorePch.cpp" />
     <ClCompile Include="IocpCore.cpp" />
     <ClCompile Include="IocpEvent.cpp" />
     <ClCompile Include="pch.cpp">
@@ -46,6 +45,7 @@
     <ClInclude Include="Logger.h" />
     <ClInclude Include="Memory.h" />
     <ClInclude Include="NetAddress.h" />
+    <ClInclude Include="PacketHeader.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Service.h" />
     <ClInclude Include="Session.h" />

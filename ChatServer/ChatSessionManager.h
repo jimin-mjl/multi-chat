@@ -19,3 +19,5 @@ private:
 	mutex							mLock;
 	set<shared_ptr<ChatSession>>	mSessions;
 };
+
+extern ChatSessionManager* GSessionManager;

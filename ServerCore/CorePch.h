@@ -45,5 +45,3 @@
 }
 
 using namespace std;
-
-void Hello();

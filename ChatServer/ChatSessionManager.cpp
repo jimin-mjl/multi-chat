@@ -6,6 +6,8 @@
 	ChatSessionManager
 ------------------------*/
 
+ChatSessionManager* GSessionManager = nullptr;
+
 void ChatSessionManager::AddSession(shared_ptr<ChatSession> session)
 {
 	lock_guard<mutex> writeLock(mLock);

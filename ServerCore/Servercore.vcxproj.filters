@@ -24,9 +24,6 @@
     <ClCompile Include="pch.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
-    <ClCompile Include="CorePch.cpp">
-      <Filter>Utils</Filter>
-    </ClCompile>
     <ClCompile Include="IocpCore.cpp">
       <Filter>Network</Filter>
     </ClCompile>
@@ -96,6 +93,9 @@
       <Filter>Service</Filter>
     </ClInclude>
     <ClInclude Include="CircularBuffer.h">
+      <Filter>Network</Filter>
+    </ClInclude>
+    <ClInclude Include="PacketHeader.h">
       <Filter>Network</Filter>
     </ClInclude>
   </ItemGroup>

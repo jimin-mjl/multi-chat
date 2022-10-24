@@ -98,14 +98,13 @@ bool Session::Send(shared_ptr<CircularBuffer> buffer)
 	return true;
 }
 
-shared_ptr<CircularBuffer> Session::CreateSendBuffer(const char* msg)
+shared_ptr<CircularBuffer> Session::CreateSendBuffer(const char* msg, int32 len)
 {
 	// Send Buffer 구성
-	int32 msgLen = sizeof(msg);
 	shared_ptr<CircularBuffer> buffer = make_shared<CircularBuffer>(SEND_BUFFER_SIZE, 1);
-	if (buffer->OnWrite(msgLen) == false)
-		return false;
-	::memcpy(buffer->WritePos(), msg, msgLen);
+	::memcpy(buffer->WritePos(), msg, len);
+	if (buffer->OnWrite(len) == false)
+		return nullptr;
 	return buffer;
 }
 
@@ -206,7 +205,7 @@ void Session::registerSend()
 
 	DWORD sendBytes = 0;
 	int result = ::WSASend(mSock, dataBufs.data(), static_cast<DWORD>(dataBufs.size()), &sendBytes, 0, &mSendEvent, nullptr);
-	if (result == false)
+	if (result == SOCKET_ERROR)
 	{
 		int32 error = ::WSAGetLastError();
 		if (error != WSA_IO_PENDING)
@@ -257,7 +256,6 @@ void Session::processConnect()
 
 void Session::processDisconnect()
 {
-	cout << "process disconnect" << endl;
 	mDisconnectEvent.SetOwner(nullptr);  // release reference
 }
 

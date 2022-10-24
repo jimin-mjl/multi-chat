@@ -1,4 +1,5 @@
 ﻿#include "pch.h"
+#include "CircularBuffer.h"
 #include "ClientService.h"
 #include "IocpCore.h"
 #include "Session.h"
@@ -12,7 +13,10 @@ public:
 	virtual void OnConnect() override
 	{
 		cout << "Connected" << endl;
-		// Send("hi from client");
+
+		string msg = "Hello from client";
+		shared_ptr<CircularBuffer> buffer = CreateSendBuffer(msg.c_str(), static_cast<int32>(msg.size()));
+		Send(buffer);
 	}
 
 	virtual void OnSend(int32 sendBytes) override
@@ -23,8 +27,7 @@ public:
 	virtual int32 OnRecv(char* buffer, int32 recvBytes) override
 	{
 		cout << "recv bytes: " << recvBytes << endl;
-		cout << "recv content: " << buffer << endl;
-		Send("hola from client");
+		cout << buffer << endl;
 		return recvBytes;
 	}
 

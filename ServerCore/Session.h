@@ -6,14 +6,14 @@
 class Service;
 class CircularBuffer;
 
+constexpr int INPUT_BUF_SIZE = 1024;
+
 /*------------------------------------
 				Session
-	: IOCP object class responsible 
+	: IOCP object class responsible
 	for storing client data
 	and processing IOCP events
 -------------------------------------*/
-
-constexpr int INPUT_BUF_SIZE = 1024;
 
 class Session : public IocpHandler
 {
@@ -27,17 +27,17 @@ public:
 	Session();
 	~Session();
 
-	void				SetSocket(SOCKET sock) { mSock = sock; }
-	void				SetNetAddress(SOCKADDR_IN addr) { mAddr = NetAddress(addr); }
-	void				SetService(shared_ptr<Service> service) { mService = service; }
-	SOCKET				GetSocket() { return mSock; }
-	shared_ptr<Service> GetService();
-	bool				IsConnected() { return mIsConnected.load(); }
+	void							SetSocket(SOCKET sock) { mSock = sock; }
+	void							SetNetAddress(SOCKADDR_IN addr) { mAddr = NetAddress(addr); }
+	void							SetService(shared_ptr<Service> service) { mService = service; }
+	SOCKET							GetSocket() { return mSock; }
+	shared_ptr<Service>				GetService();
+	bool							IsConnected() { return mIsConnected.load(); }
 	
 	bool							Connect();
 	void							Disconnect();
 	bool							Send(shared_ptr<CircularBuffer> buffer);
-	shared_ptr<CircularBuffer>		CreateSendBuffer(const char* msg);
+	shared_ptr<CircularBuffer>		CreateSendBuffer(const char* msg, int32 len);
 
 	/* IocpHandler Interface methods */
 	virtual HANDLE		GetHandle() override { return reinterpret_cast<HANDLE>(mSock); }
