@@ -26,7 +26,8 @@ int32 ChatSession::OnRecv(char* buffer, int32 recvBytes)
 
 	shared_ptr<CircularBuffer> sendBuffer = CreateSendBuffer(buffer, recvBytes);
 	if (sendBuffer)
-		Send(sendBuffer);
+		GSessionManager->Broadcast(sendBuffer);
+		// Send(sendBuffer);
 	return recvBytes;
 }
 

@@ -73,7 +73,7 @@ private:
 	weak_ptr<Service>						mService;
 
 	/* IO buffers */
-	mutex									mSendLock;
+	recursive_mutex							mSendLock;
 	atomic<bool>							mIsSendOccupied = false;
 	queue<shared_ptr<CircularBuffer>>		mSendQueue;
 	shared_ptr<CircularBuffer>				mRecvBuffer = nullptr;

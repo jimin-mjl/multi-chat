@@ -85,7 +85,7 @@ void Session::Disconnect()
 bool Session::Send(shared_ptr<CircularBuffer> buffer)
 {
 	{
-		lock_guard<mutex> writeLock(mSendLock);
+		lock_guard<recursive_mutex> writeLock(mSendLock);
 		mSendQueue.push(buffer);
 	}
 
@@ -183,7 +183,7 @@ void Session::registerSend()
 
 	// sendQueue에 등록된 sendBuffer를 모두 꺼내서 한꺼번에 보낸다 (scatter-gather)
 	{
-		lock_guard<mutex> writeLock(mSendLock);
+		lock_guard<recursive_mutex> writeLock(mSendLock);
 		while (mSendQueue.empty() == false)
 		{
 			mSendEvent.mSendBuffers.push_back(mSendQueue.front());
@@ -301,7 +301,7 @@ void Session::processSend(int32 sendBytes)
 	
 	// sendQueue를 확인해서 남은 buffer가 있으면 마저 보내고 아니면 플래그를 풀어준다. 
 	{
-		lock_guard<mutex> writeLock(mSendLock);
+		lock_guard<recursive_mutex> writeLock(mSendLock);
 		if (mSendQueue.empty() == false)
 			registerSend();
 		else
